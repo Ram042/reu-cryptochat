@@ -1,0 +1,9 @@
+package lib;
+
+public enum Action {
+
+    USER_REGISTER,
+    SESSION_INIT, SESSION_GET, SESSION_RESPONSE,
+    ENVELOPE, ENVELOPE_GET
+
+}
