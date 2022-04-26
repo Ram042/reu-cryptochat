@@ -29,10 +29,9 @@ public class SignedMessage<T extends Message> implements ObjSerializable {
 
     private T parseMessage(byte[] message) {
         return switch (Message.getAction(message)) {
-            case SESSION_INIT -> (T) new SessionInitMessage(message);
+            case SESSION_UPDATE -> (T) new SessionUpdateMessage(message);
             case USER_REGISTER -> (T) new UserRegisterMessage(message);
             case SESSION_GET -> (T) new SessionGetMessage(message);
-            case SESSION_RESPONSE -> (T) new SessionResponseMessage(message);
             case ENVELOPE -> (T) new EnvelopeMessage(message);
             case ENVELOPE_GET -> (T) new EnvelopeGetMessage(message);
         };

@@ -7,8 +7,7 @@ import jetbrains.exodus.env.Cursor;
 import jetbrains.exodus.env.Store;
 import lib.Message;
 import lib.SignedMessage;
-import lib.message.SessionInitMessage;
-import lib.message.SessionResponseMessage;
+import lib.message.SessionUpdateMessage;
 import server.db.SessionDatabase;
 
 import java.nio.ByteBuffer;
@@ -17,9 +16,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 
 public class XodusSessionDatabase implements SessionDatabase {
-
-    private static final byte INIT = 0;
-    private static final byte RESPONSE = 1;
 
     private final Store store;
 
@@ -37,17 +33,7 @@ public class XodusSessionDatabase implements SessionDatabase {
     }
 
     private void addMessage(Message message) {
-        byte[] target;
-        byte type;
-
-        if (message instanceof SessionInitMessage) {
-            target = ((SessionInitMessage) message).getTarget();
-            type = INIT;
-        } else {
-            target = ((SessionResponseMessage) message).getTarget();
-            type = RESPONSE;
-        }
-        byte[] key = generateKey(target, type);
+        byte[] key = ((SessionUpdateMessage) message).getTarget();
 
         byte[] value = ByteBuffer.allocate(Long.BYTES + message.serialize().encode().length)
                 .putLong(Instant.now().getEpochSecond())
@@ -58,34 +44,24 @@ public class XodusSessionDatabase implements SessionDatabase {
     }
 
     @Override
-    public void addSessionInit(SignedMessage<SessionInitMessage> message) {
+    public void addSessionInit(SignedMessage<SessionUpdateMessage> message) {
         addMessage(message.getMessage());
     }
 
     @Override
-    public void addSessionResponse(SignedMessage<SessionInitMessage> message) {
+    public void addSessionResponse(SignedMessage<SessionUpdateMessage> message) {
         addMessage(message.getMessage());
     }
 
-    public SignedMessage<SessionInitMessage>[] getSessionInit(byte[] target) {
+    public SignedMessage<SessionUpdateMessage>[] getSessionUpdates(byte[] target) {
         var l = store.getEnvironment().computeInReadonlyTransaction(txn -> {
             try (Cursor cursor = store.openCursor(txn)) {
-                final ByteIterable v = cursor.getSearchKey(new ArrayByteIterable(
-                        generateKey(target, INIT)
-                ));
+                final ByteIterable v = cursor.getSearchKey(new ArrayByteIterable(target));
                 if (v != null) {
-                    ArrayList<SignedMessage<SessionInitMessage>> list = new ArrayList<>();
-                    // there is a value for specified key, the variable v contains the leftmost value
+                    ArrayList<SignedMessage<SessionUpdateMessage>> list = new ArrayList<>();
                     while (cursor.getNextDup()) {
-                        // this loop traverses all pairs with the same key, values differ on each iteration
-
-                        var value = cursor.getValue();
-                        ByteBuffer buf = ByteBuffer.allocate(value.getLength() - 4);
-                        var it = value.subIterable(4, value.getLength() - 4).iterator();
-                        while (it.hasNext()) {
-                            buf.put(it.next());
-                        }
-                        list.add(new SignedMessage<>(buf.array()));
+                        var arr = new ArrayByteIterable(cursor.getValue());
+                        list.add(new SignedMessage<>(arr.getBytesUnsafe()));
                     }
                     return list;
                 } else {

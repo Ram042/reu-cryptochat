@@ -1,10 +1,12 @@
 package server.xodus;
 
 import lib.SignedMessage;
-import lib.message.SessionInitMessage;
+import lib.message.SessionUpdateMessage;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
+
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -26,11 +28,11 @@ public class SessionDatabaseTest {
     @Test
     public void test() {
         var sdb = db.getSessionDatabase();
-        sdb.addSessionInit(new SignedMessage<>(new SessionInitMessage(
-                new byte[32], new byte[32], new byte[8]
+        sdb.addSessionInit(new SignedMessage<>(new SessionUpdateMessage(
+                new byte[32], new byte[32], UUID.randomUUID().toString()
         ), new byte[32]));
 
-        assertThat(sdb.getSessionInit(new byte[32])).isNotNull();
+        assertThat(sdb.getSessionUpdates(new byte[32])).isNotNull();
     }
 
 }

@@ -25,10 +25,10 @@ public class XodusDatabase implements Database {
     void initStores() {
         userStore = environment.computeInTransaction(txn ->
                 environment.openStore("users", StoreConfig.WITHOUT_DUPLICATES, txn));
+        sessionStore = environment.computeInTransaction(txn ->
+                environment.openStore("session", StoreConfig.WITH_DUPLICATES, txn));
         messageStore = environment.computeInTransaction(txn ->
                 environment.openStore("messages", StoreConfig.WITH_DUPLICATES, txn));
-        sessionStore = environment.computeInTransaction(txn ->
-                environment.openStore("session", StoreConfig.WITHOUT_DUPLICATES, txn));
     }
 
     @Override
@@ -43,7 +43,7 @@ public class XodusDatabase implements Database {
 
     @Override
     public SessionDatabase getSessionDatabase() {
-        return new XodusSessionDatabase(userStore);
+        return new XodusSessionDatabase(sessionStore);
     }
 
     void clear() {

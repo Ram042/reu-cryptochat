@@ -6,12 +6,7 @@ import lib.utils.Crypto;
 import moe.orangelabs.protoobj.Obj;
 import moe.orangelabs.protoobj.ObjSerializable;
 
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
+import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
 import java.time.Instant;
 
@@ -24,7 +19,6 @@ public class EnvelopeMessage extends Message {
 
     final String alg;
     final byte[] nonce;
-    final int counter;
 
     final byte[] payload;
 
@@ -38,25 +32,20 @@ public class EnvelopeMessage extends Message {
         var params = map.getMap("PARAMS");
         alg = params.getString("ALG").getString();
         nonce = params.getData("NONCE").getData();
-        counter = params.getInteger("COUNTER").value.intValueExact();
 
-        checkArgument(alg.equals("ChaCha20"));
-        checkArgument(counter == 0);
+        checkArgument(alg.equals("ChaCha20-Poly1305"));
         checkArgument(nonce.length == 12);
     }
 
     public EnvelopeMessage(byte[] target, EncryptedMessagePayload messagePayload, byte[] key)
-            throws InvalidAlgorithmParameterException, NoSuchPaddingException, IllegalBlockSizeException,
-            NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
+            throws GeneralSecurityException {
         super(Action.ENVELOPE);
         this.target = target;
 
-        alg = "ChaCha20";
+        alg = "ChaCha20-Poly1305";
 
         nonce = new byte[12];
         new SecureRandom().nextBytes(nonce);
-
-        counter = 0;
 
         var message = messagePayload.serialize().encode();
         //padding
@@ -64,7 +53,7 @@ public class EnvelopeMessage extends Message {
         var newMessage = new byte[newSize];
         System.arraycopy(message, 0, newMessage, 0, message.length);
 
-        payload = Crypto.encrypt(newMessage, key, nonce, counter);
+        payload = Crypto.Encrypt.encrypt(newMessage, key, nonce);
     }
 
     @Override
@@ -73,9 +62,8 @@ public class EnvelopeMessage extends Message {
                 "ACTION", getAction().toString(),
                 "TARGET", getTarget(),
                 "PARAMS", map(
-                        "ALG", "ChaCha20",
-                        "NONCE", nonce,
-                        "COUNTER", counter
+                        "ALG", alg,
+                        "NONCE", nonce
                 ),
                 "PAYLOAD", payload
         );
@@ -85,40 +73,34 @@ public class EnvelopeMessage extends Message {
         return target.clone();
     }
 
-    public EncryptedMessagePayload decrypt(byte[] key) throws InvalidAlgorithmParameterException, NoSuchPaddingException,
-            IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
-        return new EncryptedMessagePayload(Crypto.decrypt(payload, key, nonce, counter));
+    public EncryptedMessagePayload decrypt(byte[] key) throws GeneralSecurityException {
+        return new EncryptedMessagePayload(Crypto.Encrypt.decrypt(payload, key, nonce));
     }
 
     public static class EncryptedMessagePayload implements ObjSerializable {
 
-        private final long counter;
         private final Instant time;
         private final String message;
 
         public EncryptedMessagePayload(byte[] message) {
             var map = Obj.decode(message).getAsMap();
-            counter = map.getInteger("COUNTER").value.longValueExact();
             time = Instant.ofEpochMilli(map.getInteger("TIME").value.longValueExact());
             this.message = map.getString("MESSAGE").getString();
         }
 
-        public EncryptedMessagePayload(long counter, Instant time, String message) {
-            this.counter = counter;
+        public EncryptedMessagePayload(Instant time, String message) {
             this.time = time;
             this.message = message;
         }
 
-        public EncryptedMessagePayload(String message, long counter) {
+        public EncryptedMessagePayload(String message) {
             this.message = message;
-            this.counter = counter;
             this.time = Instant.now();
         }
 
         @Override
         public Obj serialize() {
             return map(
-                    "COUNTER", counter,
                     "TIME", time.toEpochMilli(),
                     "MESSAGE", message
             );

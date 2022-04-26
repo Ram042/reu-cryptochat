@@ -4,26 +4,26 @@ import lib.Action;
 import lib.Message;
 import moe.orangelabs.protoobj.Obj;
 
-public class SessionInitMessage extends Message {
+public class SessionUpdateMessage extends Message {
 
+    private final String id;
     private final byte[] sessionPublicKey;
     private final byte[] target;
-    private final byte[] seed;
 
-    public SessionInitMessage(byte[] sessionPublicKey, byte[] target, byte[] seed) {
-        super(Action.SESSION_INIT);
+    public SessionUpdateMessage(byte[] sessionPublicKey, byte[] target, String id) {
+        super(Action.SESSION_UPDATE);
         this.sessionPublicKey = sessionPublicKey.clone();
         this.target = target.clone();
-        this.seed = seed.clone();
+        this.id = id;
     }
 
-    public SessionInitMessage(byte[] message) {
+    public SessionUpdateMessage(byte[] message) {
         super(message);
         var map = Obj.decode(message).getAsMap();
 
         sessionPublicKey = map.getData("SESSION_PUBLIC_KEY").getData();
         target = map.getData("TARGET").getData();
-        seed = map.getData("SEED").getData();
+        id = map.getString("ID").getString();
     }
 
     public byte[] getSessionPublicKey() {
@@ -34,8 +34,8 @@ public class SessionInitMessage extends Message {
         return target.clone();
     }
 
-    public byte[] getSeed() {
-        return seed.clone();
+    public String getId() {
+        return id;
     }
 
     @Override
@@ -44,7 +44,7 @@ public class SessionInitMessage extends Message {
                 "ACTION", getAction().toString(),
                 "SESSION_PUBLIC_KEY", sessionPublicKey,
                 "TARGET", target,
-                "SEED", seed
+                "ID", id
         );
     }
 

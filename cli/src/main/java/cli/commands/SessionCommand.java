@@ -1,25 +1,29 @@
 package cli.commands;
 
 import cli.db.Database;
-import cli.db.model.Session;
-import cli.net.Request;
-import com.google.common.base.Preconditions;
+import cli.db.Profiles;
+import cli.db.Sessions;
+import cli.db.Users;
+import cli.net.Api;
 import lib.Action;
 import lib.SignedMessage;
 import lib.message.SessionGetMessage;
-import lib.message.SessionInitMessage;
+import lib.message.SessionUpdateMessage;
+import lib.utils.Base16;
 import lib.utils.Base62;
+import lib.utils.Crypto;
 import lombok.extern.slf4j.Slf4j;
 import moe.orangelabs.protoobj.Obj;
 import org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters;
 import org.bouncycastle.util.encoders.Hex;
 import picocli.CommandLine;
 
-import java.io.IOException;
 import java.net.URI;
+import java.nio.file.Path;
 import java.security.SecureRandom;
-import java.sql.SQLException;
 import java.time.Instant;
+import java.util.HexFormat;
+import java.util.UUID;
 
 import static picocli.CommandLine.Command;
 import static picocli.CommandLine.Option;
@@ -28,23 +32,31 @@ import static picocli.CommandLine.Option;
 @Command(name = "session", aliases = {"chats"},
         description = "Session management (aka chats)")
 @Slf4j
-public class SessionCommand {
+public final class SessionCommand {
 
     @CommandLine.Spec
-    private CommandLine.Model.CommandSpec spec;
+    CommandLine.Model.CommandSpec spec;
 
     @Option(names = "--ulr", defaultValue = "http://localhost:6060/")
     URI uri;
 
     @Option(names = "--name", defaultValue = "default")
     String name;
-    @Option(names = "--password", interactive = true)
+    @Option(names = "--password", interactive = true, defaultValue = "DefaultInsecurePassword")
     String password;
-    private Session build;
 
-    @Command(name = "init")
+    @Option(names = "--dbPath", defaultValue = "cryptochat")
+    Path dbPath;
+
+    Api api;
+
+    @Command(name = "init", description = "Init session with target")
     public void init(@CommandLine.Parameters(index = "0", description = "Who to send message to (hex)") String id)
-            throws IOException, InterruptedException {
+            throws Exception {
+        if (api == null) {
+            api = new Api(uri);
+        }
+
         //generate SESSION_INIT_MESSAGE
         byte[] tmpKey = new byte[32];
         new SecureRandom().nextBytes(tmpKey);
@@ -53,78 +65,113 @@ public class SessionCommand {
         new SecureRandom().nextBytes(seed);
 
         byte[] publicKey = new Ed25519PrivateKeyParameters(tmpKey).generatePublicKey().getEncoded();
-        SessionInitMessage message = new SessionInitMessage(
-                publicKey, Hex.decode(id), seed
+        SessionUpdateMessage message = new SessionUpdateMessage(
+                publicKey, Hex.decode(id), UUID.randomUUID().toString()
         );
 
-        Database db = new Database(name + ".db", password, false);
+        SignedMessage<SessionUpdateMessage> signedMessage;
+        try (Database db = new Database(dbPath, password)) {
 
-        //get our key
-        var key = db.getKey();
+            //get our key
+            Profiles.Profile profile = db.getProfiles().findProfile(name, null);
+            String keyString = profile.getPrivateKey();
+            var key = HexFormat.of().parseHex(keyString);
 
-        //sign message
-        var signedMessage = new SignedMessage<>(message, key);
+            //sign message
+            signedMessage = new SignedMessage<>(message, key);
 
-        db.getSessionCollection().addSession(Session.builder()
-                .target(Hex.decode(id))
-                .seed(seed)
-                .ephemeralKey(tmpKey)
-                .instant(Instant.now())
-                .build());
+            db.getSessions().putSessionInit(
+                    profile,
+                    db.getUsers().getUser(id, null),
+                    new Sessions.Session(
+                            UUID.randomUUID().toString(),
+                            Instant.now(),
+                            HexFormat.of().formatHex(tmpKey)
+                    )
+            );
+        }
 
         //send session
-        var result = new Request(uri)
-                .post("session", Base62.encode(signedMessage.serialize().encode()));
+        var result = api.sendSessionUpdate(signedMessage);
 
         spec.commandLine().getOut().println(result.body());
     }
 
-    @Command(name = "get", description = "Get incoming sessions")
-    public void get(@Option(names = "name", description = "Name of local user", required = true, defaultValue = "default") String name)
-            throws SQLException, IOException, InterruptedException {
-        Database db = new Database(name + ".db", null, false);
-        var key = db.getKey();
-
-        var result = new Request(uri).get(
-                "session/" + Base62.encode(new SignedMessage<>(new SessionGetMessage(), key).serialize().encode()),
-                null);
-
-        var sessions = Obj.decode(Base62.decodeString(result.body())).getAsArray();
-
-        sessions.forEach(obj -> {
-            var sessionMsg = new SignedMessage<SessionInitMessage>(obj.encode());
-            if (!sessionMsg.verify(Action.SESSION_INIT)) {
-                log.warn("Received bad message");
-                return;
+    @Command(name = "get", description = "Get incoming sessions. Does not replies to inits")
+    public void get()
+            throws Exception {
+        if (api == null) {
+            api = new Api(uri);
+        }
+        try (Database db = new Database(dbPath, password)) {
+            var profile = db.getProfiles().findProfile(name, null);
+            if (profile == null) {
+                throw new IllegalArgumentException("No profile " + name);
             }
+            var key = HexFormat.of().parseHex(profile.getPrivateKey());
 
-            var session = db.getSessionCollection()
-                    .getSessionBySeed(sessionMsg.getMessage().getTarget(), sessionMsg.getMessage().getSeed());
-            session.setTargetEphemeralPublicKey(sessionMsg.getMessage().getSessionPublicKey());
+            var result = api.getSession(new SignedMessage<>(new SessionGetMessage(), key));
 
-            db.getSessionCollection().addSession(session);
-        });
+            var sessions = Obj.decode(Base62.decodeString(result.body())).getAsArray();
+
+            sessions.forEach(obj -> {
+                var sessionMsg = new SignedMessage<SessionUpdateMessage>(obj.encode());
+                if (!sessionMsg.verify(Action.SESSION_UPDATE)) {
+                    LOGGER.info("Received bad message");
+                    return;
+                }
+
+                db.getUsers().addUser(new Users.User(Base16.encode(sessionMsg.getPublicKey())));
+                db.getSessions().putSessionResponse(
+                        profile,
+                        new Users.User(Base16.encode(sessionMsg.getPublicKey())),
+                        new Sessions.Session(sessionMsg.getMessage().getId()).setResponse(
+                                Instant.now(),
+                                Base16.encode(sessionMsg.getMessage().getSessionPublicKey())
+                        )
+                );
+            });
+        }
     }
 
     @Command(name = "update", description = "Reply to init")
-    public void update(@Option(names = "name",
-            description = "Name of local user",
-            required = true, defaultValue = "default") String name,
-                       @Option(names = "target", required = true) String targetString) {
-        Database db = new Database(name + ".db", null, false);
-        var key = db.getKey();
-
-        byte[] target = Hex.decode(targetString);
-        Preconditions.checkArgument(target.length == 32);
-
-        var session = db.getSessionCollection().getLatestSession(target);
-
-        if (session == null) {
-            log.error("No sessions for target {}", target);
+    public void reply(@Option(names = "target", required = true) String targetString,
+                      @Option(names = "--force") boolean force) throws Exception {
+        if (api == null) {
+            api = new Api(uri);
         }
 
-        if (session.getEphemeralKey() != null) {
+        byte[] target = Base16.decode(targetString);
 
+        try (Database db = new Database(dbPath, password)) {
+            var profile = db.getProfiles().findProfile(null, name);
+            if (profile == null) {
+                throw new IllegalArgumentException("No profile");
+            }
+            var targetUser = db.getUsers().getUser(targetString, null);
+
+            if (targetUser == null) {
+                throw new IllegalArgumentException("User not found");
+            }
+
+            var session = db.getSessions().getLatestSession(
+                    db.getUsers().getUser(targetString, null)
+            );
+
+            if (session == null) {
+                throw new IllegalStateException("No session for target");
+            }
+
+            if (session.isInit()) {
+                throw new IllegalStateException("Session already initialized");
+            } else {
+                session.setInit(Instant.now(), Base16.encode(Crypto.Sign.generatePrivateKey()));
+                api.sendSessionUpdate(new SignedMessage<>(new SessionUpdateMessage(
+                        Base16.decode(session.getSessionPublicKey()),
+                        Base16.decode(targetUser.getSigningPublicKey()),
+                        session.getSessionId()
+                ), Base16.decode(profile.getPrivateKey())));
+            }
         }
     }
 

@@ -3,7 +3,7 @@ package cli;
 import cli.commands.DebugCommand;
 import cli.commands.MessageCommand;
 import cli.commands.SessionCommand;
-import cli.commands.UserCommand;
+import cli.commands.ProfileCommand;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,7 +22,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 @CommandLine.Command(name = "cli",
         version = "0.0",
-        subcommands = {UserCommand.class, DebugCommand.class, SessionCommand.class, MessageCommand.class},mixinStandardHelpOptions = true)
+        subcommands = {ProfileCommand.class, DebugCommand.class, SessionCommand.class, MessageCommand.class},mixinStandardHelpOptions = true)
 public class Main
         implements Runnable {
 

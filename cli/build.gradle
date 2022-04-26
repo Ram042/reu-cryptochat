@@ -1,29 +1,35 @@
 plugins {
     id 'java'
     id 'application'
-    id "io.freefair.lombok" version "6.3.0"
+    id "io.freefair.lombok" version "6.4.2"
 }
 
 dependencies {
     implementation project(":lib")
-    implementation 'org.bouncycastle:bcprov-jdk15on:1.70'
-    implementation 'org.slf4j:slf4j-api:1.7.32'
-    implementation 'org.slf4j:slf4j-simple:1.7.32'
-    implementation 'moe.orangelabs:protoobj:2.2'
-    implementation 'moe.orangelabs:json:5.1'
-    implementation 'com.google.guava:guava:31.0.1-jre'
-    implementation 'io.mikael:urlbuilder:2.0.9'
+    implementation "org.bouncycastle:bcprov-jdk15on:$bouncycastleVersion"
+    implementation "org.slf4j:slf4j-api:$slf4jVersion"
+    implementation "org.slf4j:slf4j-simple:$slf4jVersion"
+    implementation "moe.orangelabs:protoobj:$protoobjVersion"
+    implementation "moe.orangelabs:json:$jsonVersion"
+    implementation "com.google.guava:guava:$guavaVersion"
+    implementation "io.mikael:urlbuilder:$urlbuilderVersion"
 
-    implementation 'org.dizitart:nitrite:3.4.3'
-    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.13.1'
-    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.13.1'
+//    implementation "org.dizitart:nitrite:$nitriteVersion"
+//    implementation "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jacksonVersion"
+//    implementation "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:$jacksonVersion"
 
-    implementation 'info.picocli:picocli:4.6.2'
-    annotationProcessor 'info.picocli:picocli-codegen:4.6.2'
+    implementation "org.jetbrains.xodus:xodus-openAPI:$xodusVersion"
+    implementation "org.jetbrains.xodus:xodus-environment:$xodusVersion"
+    implementation "org.jetbrains.xodus:xodus-entity-store:$xodusVersion"
+    implementation "org.jetbrains.xodus:xodus-vfs:$xodusVersion"
+    implementation "org.jetbrains.xodus:xodus-crypto:$xodusVersion"
 
-    implementation 'org.mockito:mockito-core:4.3.1'
-    testImplementation 'org.testng:testng:7.5'
-    testImplementation 'org.assertj:assertj-core:3.22.0'
+    implementation "info.picocli:picocli:$picocliVersion"
+    annotationProcessor "info.picocli:picocli-codegen:$picocliVersion"
+
+    implementation "org.mockito:mockito-core:$mockitoVersion"
+    testImplementation "org.testng:testng:$testngVersion"
+    testImplementation "org.assertj:assertj-core:$assertjVersion"
 }
 
 compileJava {
@@ -36,9 +42,16 @@ application {
 
 run {
     workingDir project.buildDir
-    systemProperty "org.jooq.no-logo", "true"
+    systemProperties = [
+            "org.slf4j.simpleLogger.log.jetbrains.exodus.io.FileDataWriter": "off",
+            "org.slf4j.simpleLogger.log.jetbrains.exodus.io.FileDataReader": "off"
+    ]
 }
 
 test {
     useTestNG()
+    workingDir project.buildDir
+    systemProperties = [
+            "org.slf4j.simpleLogger.log.jetbrains.exodus.io.FileDataWriter": "off"
+    ]
 }

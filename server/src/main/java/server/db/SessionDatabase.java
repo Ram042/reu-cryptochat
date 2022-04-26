@@ -1,16 +1,15 @@
 package server.db;
 
 import lib.SignedMessage;
-import lib.message.SessionInitMessage;
-import server.api.Session;
+import lib.message.SessionUpdateMessage;
 
 public interface SessionDatabase {
 
-    void addSessionInit(SignedMessage<SessionInitMessage> message);
+    void addSessionInit(SignedMessage<SessionUpdateMessage> message);
 
-    void addSessionResponse(SignedMessage<SessionInitMessage> message);
+    void addSessionResponse(SignedMessage<SessionUpdateMessage> message);
 
-    SignedMessage<SessionInitMessage>[] getSessionInit(byte[] target);
+    SignedMessage<SessionUpdateMessage>[] getSessionUpdates(byte[] target);
 
     void prune();
 

@@ -10,23 +10,25 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 
-import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.ChaCha20ParameterSpec;
+import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.security.*;
 import java.security.spec.EdECPrivateKeySpec;
-import java.security.spec.InvalidKeySpecException;
 import java.security.spec.NamedParameterSpec;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Arrays;
+import java.util.Random;
+import java.util.function.Consumer;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 @CommandLine.Command(name = "debug", hidden = true)
-public class DebugCommand {
+public final class DebugCommand {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DebugCommand.class);
 
@@ -42,7 +44,7 @@ public class DebugCommand {
     }
 
     @CommandLine.Command(name = "dh")
-    public void dhTest() throws NoSuchAlgorithmException, NoSuchProviderException {
+    public void dhTest() throws NoSuchProviderException {
         byte[] aliceKey = new byte[32];
         byte[] bobKey = new byte[32];
         new SecureRandom().nextBytes(aliceKey);
@@ -73,11 +75,14 @@ public class DebugCommand {
 
         LOGGER.info("Alice Agreement {}", Hex.toHexString(aliceResult));
         LOGGER.info("Bob Agreement   {}", Hex.toHexString(bobResult));
+
+        if (!Arrays.equals(aliceResult, bobResult)) {
+            throw new RuntimeException("Agreed to different keys");
+        }
     }
 
     @CommandLine.Command(name = "testSign")
-    public void sign() throws NoSuchAlgorithmException, NoSuchProviderException, InvalidKeySpecException,
-            InvalidKeyException, SignatureException {
+    public void sign() throws GeneralSecurityException {
         byte[] key = new byte[32];
         new SecureRandom().nextBytes(key);
         LOGGER.info("Key {}", Hex.toHexString(key));
@@ -120,8 +125,7 @@ public class DebugCommand {
     }
 
     @CommandLine.Command(name = "testChaCha20")
-    public void testChaCha20() throws NoSuchPaddingException, NoSuchAlgorithmException,
-            InvalidAlgorithmParameterException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
+    public void testChaCha20() throws GeneralSecurityException {
         byte[] nonce = new byte[12];
         new SecureRandom().nextBytes(nonce);
 
@@ -140,8 +144,63 @@ public class DebugCommand {
         byte[] decryptedMessage = decrypt.doFinal(encryptedMessage);
 
         if (!new String(decryptedMessage).equals(message)) {
-            throw new RuntimeException("Cannot decrypt");
+            throw new RuntimeException("Decryption failed");
         }
+    }
+
+    @CommandLine.Command(name = "testPbeEncryption")
+    public void testPbeEncryption() throws GeneralSecurityException {
+        var msg = new byte[16];
+        new Random().nextBytes(msg);
+        var salt = new byte[32];
+        new Random().nextBytes(salt);
+
+        SecretKeyFactory keyFactory = SecretKeyFactory.getInstance("PBEWithHmacSHA256AndAES_256");
+
+        Cipher cipher = Cipher.getInstance("PBEWithHmacSHA256AndAES_256");
+
+        var privateKey = keyFactory.generateSecret(new PBEKeySpec("Password".toCharArray(), salt, 100, 256));
+        cipher.init(Cipher.ENCRYPT_MODE, privateKey);
+        var enc = cipher.doFinal(msg);
+
+        var publicKey = keyFactory.generateSecret(new PBEKeySpec("Password".toCharArray()));
+        cipher.init(Cipher.DECRYPT_MODE, publicKey);
+        var dec = cipher.doFinal(enc);
+
+        LOGGER.info("msg {}", Hex.toHexString(msg));
+        LOGGER.info("enc {}", Hex.toHexString(enc));
+        LOGGER.info("dec {}", Hex.toHexString(dec));
+    }
+
+    @CommandLine.Command(name = "testPbkdf2Speed")
+    public void testPbkdf2Speed() throws GeneralSecurityException {
+        var pass = "Password".toCharArray();
+        var salt = new byte[32];
+
+        SecretKeyFactory keyFactory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
+
+        Consumer<Integer> func = iter -> {
+            var start = Instant.now();
+            try {
+                keyFactory.generateSecret(new PBEKeySpec(pass, salt, iter, 256));
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+            var end = Instant.now();
+            Duration dur = Duration.between(start, end);
+            System.out.println("Iterations " + iter + " " +
+                    "time " + dur.getSeconds() + "s " + dur.toMillisPart() + "ms");
+        };
+
+        func.accept(1);
+        func.accept(10);
+        func.accept(100);
+        func.accept(1000);
+        func.accept(10000);
+        func.accept(100000);
+        func.accept(1000000);
+        func.accept(10000000);
+
     }
 
 }

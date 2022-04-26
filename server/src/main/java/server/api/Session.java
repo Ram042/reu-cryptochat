@@ -5,15 +5,13 @@ import io.javalin.http.HttpCode;
 import lib.Action;
 import lib.SignedMessage;
 import lib.message.SessionGetMessage;
-import lib.message.SessionInitMessage;
+import lib.message.SessionUpdateMessage;
 import lib.utils.Base62;
 import moe.orangelabs.protoobj.types.ObjArray;
 import server.db.SessionDatabase;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.stream.Stream;
 
 public class Session {
 
@@ -24,9 +22,9 @@ public class Session {
     }
 
     public void addInit(Context ctx) {
-        var m = new SignedMessage<SessionInitMessage>(Base62.decodeString(ctx.body()));
+        var m = new SignedMessage<SessionUpdateMessage>(Base62.decodeString(ctx.body()));
 
-        if (m.getAction() != Action.SESSION_INIT) {
+        if (m.getAction() != Action.SESSION_UPDATE) {
             ctx.status(HttpCode.BAD_REQUEST);
             ctx.result("bad msg");
             return;
@@ -69,7 +67,7 @@ public class Session {
             return;
         }
 
-        var messages = sessionDatabase.getSessionInit(m.getPublicKey());
+        var messages = sessionDatabase.getSessionUpdates(m.getPublicKey());
 
         ctx.result(Base62.encode(new ObjArray((Object[]) messages).encode()));
     }
