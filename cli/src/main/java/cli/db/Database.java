@@ -44,6 +44,8 @@ public class Database implements Closeable {
     private final Users users;
     @Getter
     private final Sessions sessions;
+    @Getter
+    private final Messages messages;
 
     /**
      * @param dbPath
@@ -92,7 +94,7 @@ public class Database implements Closeable {
         profiles = new Profiles(store, this);
         users = new Users(store, this);
         sessions = new Sessions(store, this);
-
+        messages = new Messages(store,this);
     }
 
     public void addProfile(Profiles.Profile profile) {

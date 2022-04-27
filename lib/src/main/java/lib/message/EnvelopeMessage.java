@@ -15,6 +15,8 @@ import static moe.orangelabs.protoobj.Obj.map;
 
 public class EnvelopeMessage extends Message {
 
+    final String sessionId;
+
     final byte[] target;
 
     final String alg;
@@ -26,6 +28,7 @@ public class EnvelopeMessage extends Message {
         super(message);
 
         var map = Obj.decode(message).getAsMap();
+        sessionId = map.getString("SESSION_ID").getString();
         target = map.getData("TARGET").getData();
         payload = map.getData("PAYLOAD").getData();
 
@@ -37,10 +40,11 @@ public class EnvelopeMessage extends Message {
         checkArgument(nonce.length == 12);
     }
 
-    public EnvelopeMessage(byte[] target, EncryptedMessagePayload messagePayload, byte[] key)
+    public EnvelopeMessage(String sessionId, byte[] target, EncryptedMessagePayload messagePayload, byte[] key)
             throws GeneralSecurityException {
         super(Action.ENVELOPE);
         this.target = target;
+        this.sessionId = sessionId;
 
         alg = "ChaCha20-Poly1305";
 
@@ -60,6 +64,7 @@ public class EnvelopeMessage extends Message {
     public Obj serialize() {
         return map(
                 "ACTION", getAction().toString(),
+                "SESSION_ID", getSessionId(),
                 "TARGET", getTarget(),
                 "PARAMS", map(
                         "ALG", alg,
@@ -67,6 +72,10 @@ public class EnvelopeMessage extends Message {
                 ),
                 "PAYLOAD", payload
         );
+    }
+
+    public String getSessionId() {
+        return sessionId;
     }
 
     public byte[] getTarget() {
@@ -104,6 +113,14 @@ public class EnvelopeMessage extends Message {
                     "TIME", time.toEpochMilli(),
                     "MESSAGE", message
             );
+        }
+
+        public Instant getTime() {
+            return time;
+        }
+
+        public String getMessage() {
+            return message;
         }
     }
 }

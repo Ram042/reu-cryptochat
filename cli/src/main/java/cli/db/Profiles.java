@@ -3,6 +3,7 @@ package cli.db;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Streams;
 import jetbrains.exodus.entitystore.PersistentEntityStore;
+import lib.utils.Base16;
 import lib.utils.Crypto;
 import lombok.Getter;
 import lombok.Setter;
@@ -66,6 +67,14 @@ public class Profiles {
                     }
                     return profile;
                 }).collect(Collectors.toUnmodifiableSet()));
+    }
+
+    public Profile findProfile(String string) {
+        if (Base16.isValid(string) && Base16.decode(string).length == Crypto.Sign.PUBLIC_KEY_ARRAY_SIZE) {
+            return findProfile(null, string);
+        } else {
+            return findProfile(string, null);
+        }
     }
 
     @Nullable

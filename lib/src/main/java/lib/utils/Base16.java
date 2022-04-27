@@ -15,4 +15,8 @@ public final class Base16 {
         return BaseEncoding.base16().lowerCase().decode(string);
     }
 
+    public static boolean isValid(String string) {
+        return BaseEncoding.base16().lowerCase().canDecode(string);
+    }
+
 }

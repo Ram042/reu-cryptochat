@@ -1,5 +1,8 @@
 package lib.utils;
 
+import org.bouncycastle.crypto.agreement.X25519Agreement;
+import org.bouncycastle.crypto.params.X25519PrivateKeyParameters;
+import org.bouncycastle.crypto.params.X25519PublicKeyParameters;
 import org.bouncycastle.math.ec.rfc8032.Ed25519;
 
 import javax.crypto.Cipher;
@@ -41,6 +44,12 @@ public final class Crypto {
     }
 
     public final static class Sign {
+
+        public static final int PRIVATE_KEY_SIZE = 256;
+        public static final int PRIVATE_KEY_ARRAY_SIZE = PRIVATE_KEY_SIZE / 8;
+        public static final int PUBLIC_KEY_SIZE = 256;
+        public static final int PUBLIC_KEY_ARRAY_SIZE = PRIVATE_KEY_SIZE / 8;
+
         public static byte[] generatePublicKey(byte[] privateKey) {
             var pub = new byte[256 / 8];
             Ed25519.generatePublicKey(privateKey, 0, pub, 0);
@@ -59,6 +68,31 @@ public final class Crypto {
         SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
         return factory.generateSecret(new PBEKeySpec(password.toCharArray(), salt,
                 interations, keyLength)).getEncoded();
+    }
+
+    public static final class DH {
+        public static byte[] generatePublicKey(byte[] privateKey) {
+            return new X25519PrivateKeyParameters(privateKey).generatePublicKey().getEncoded();
+        }
+
+        public static byte[] generatePrivateKey() {
+            byte[] key = new byte[256 / 8];
+            new SecureRandom().nextBytes(key);
+            return key;
+        }
+
+
+        public static byte[] generateSharedKey(byte[] privateKey, byte[] publicKey) {
+            var privateParams = new X25519PrivateKeyParameters(privateKey);
+            var publicParams = new X25519PublicKeyParameters(publicKey);
+
+            var agreement = new X25519Agreement();
+            agreement.init(privateParams);
+
+            byte[] result = new byte[32];
+            agreement.calculateAgreement(publicParams, result, 0);
+            return result;
+        }
     }
 
 }

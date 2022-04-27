@@ -129,7 +129,7 @@ public class Sessions {
      * No additional checks
      */
     @Nullable
-    public Session getLatestSession(Users.User user) {
+    public Session getLatestSession(Profiles.Profile profile, Users.User user) {
         String sessionId = store.computeInReadonlyTransaction(txn -> {
             var ue = txn.find("user", "publicKey", user.getSigningPublicKey()).getFirst();
             if (ue == null) {
@@ -137,10 +137,17 @@ public class Sessions {
             }
 
             Entity bestSession = Streams.stream(ue.getLinks("session"))
+                    //filter profile
+                    .filter(es -> {
+                        String privateKey = (String) es.getLink("profile").getProperty("privateKey");
+                        String publicKey = Base16.encode(Crypto.Sign.generatePublicKey(Base16.decode(privateKey)));
+                        return publicKey.equals(profile.getPublicKey());
+                    })
                     //confirm time and public key are always both null or set
                     .filter(e -> e.getProperty("initTime") != null || e.getProperty("responseTime") != null)
                     //find newest session
                     .sorted((o1, o2) -> {
+                        //return latest time, checking for null
                         BiFunction<Instant, Instant, Instant> func = (i1, i2) -> {
                             if (i1 == null) {
                                 return i2;
@@ -165,6 +172,52 @@ public class Sessions {
             }
         });
 
+        if (sessionId == null) {
+            return null;
+        }
+
+        return getSession(sessionId);
+    }
+
+    @Nullable
+    public Session getLatestReadySession(Profiles.Profile profile, Users.User user) {
+        String sessionId = store.computeInReadonlyTransaction(txn -> {
+            var ue = txn.find("user", "publicKey", user.getSigningPublicKey()).getFirst();
+            if (ue == null) {
+                throw new IllegalArgumentException("User unknown");
+            }
+
+            Entity bestSession = Streams.stream(ue.getLinks("session"))
+                    //filter profile
+                    .filter(es -> {
+                        String privateKey = (String) es.getLink("profile").getProperty("privateKey");
+                        String publicKey = Base16.encode(Crypto.Sign.generatePublicKey(Base16.decode(privateKey)));
+                        return publicKey.equals(profile.getPublicKey());
+                    })
+                    //filter ready
+                    .filter(es -> es.getProperty("initTime") != null && es.getProperty("initTime") != null)
+                    //find newest session
+                    .sorted((o1, o2) -> {
+                        //get latest instant
+                        BiFunction<Instant, Instant, Instant> func = (i1, i2) -> i1.compareTo(i2) > 0 ? i1 : i2;
+
+                        var t1 = func.apply((Instant) o1.getProperty("initTime"), (Instant) o1.getProperty("responseTime"));
+                        var t2 = func.apply((Instant) o2.getProperty("initTime"), (Instant) o2.getProperty("responseTime"));
+
+                        return t1.compareTo(t2);
+                    })
+                    .reduce((o1, o2) -> o2)
+                    .orElse(null);
+            if (bestSession == null) {
+                return null;
+            } else {
+                return (String) bestSession.getProperty("id");
+            }
+        });
+
+        if (sessionId == null) {
+            return null;
+        }
         return getSession(sessionId);
     }
 
@@ -252,7 +305,7 @@ public class Sessions {
 
             checkArgument(sessionPrivateKey.length() == Users.User.USER_PUBLIC_KEY_STRING_LENGTH, "Private kay bad size");
             HexFormat.of().parseHex(sessionPrivateKey);
-            this.sessionPublicKey = Base16.encode(Crypto.Sign.generatePublicKey(Base16.decode(sessionPrivateKey)));
+            this.sessionPublicKey = Base16.encode(Crypto.DH.generatePublicKey(Base16.decode(sessionPrivateKey)));
 
             return this;
         }
@@ -263,7 +316,7 @@ public class Sessions {
             this.initTime = initTime;
             this.sessionPrivateKey = sessionPrivateKey;
 
-            this.sessionPublicKey = Base16.encode(Crypto.Sign.generatePublicKey(Base16.decode(sessionPrivateKey)));
+            this.sessionPublicKey = Base16.encode(Crypto.DH.generatePublicKey(Base16.decode(sessionPrivateKey)));
         }
 
 

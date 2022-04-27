@@ -112,7 +112,7 @@ public final class SessionCommand {
 
             var result = api.getSession(new SignedMessage<>(new SessionGetMessage(), key));
 
-            var sessions = Obj.decode(Base62.decodeString(result.body())).getAsArray();
+            var sessions = Obj.decode(Base62.decode(result.body())).getAsArray();
 
             sessions.forEach(obj -> {
                 var sessionMsg = new SignedMessage<SessionUpdateMessage>(obj.encode());
@@ -134,17 +134,15 @@ public final class SessionCommand {
         }
     }
 
-    @Command(name = "update", description = "Reply to init")
+    @Command(name = "reply", description = "Reply to init")
     public void reply(@Option(names = "target", required = true) String targetString,
                       @Option(names = "--force") boolean force) throws Exception {
         if (api == null) {
             api = new Api(uri);
         }
 
-        byte[] target = Base16.decode(targetString);
-
         try (Database db = new Database(dbPath, password)) {
-            var profile = db.getProfiles().findProfile(null, name);
+            var profile = db.getProfiles().findProfile(name);
             if (profile == null) {
                 throw new IllegalArgumentException("No profile");
             }
@@ -155,7 +153,7 @@ public final class SessionCommand {
             }
 
             var session = db.getSessions().getLatestSession(
-                    db.getUsers().getUser(targetString, null)
+                    profile, db.getUsers().getUser(targetString, null)
             );
 
             if (session == null) {
@@ -166,11 +164,13 @@ public final class SessionCommand {
                 throw new IllegalStateException("Session already initialized");
             } else {
                 session.setInit(Instant.now(), Base16.encode(Crypto.Sign.generatePrivateKey()));
-                api.sendSessionUpdate(new SignedMessage<>(new SessionUpdateMessage(
-                        Base16.decode(session.getSessionPublicKey()),
-                        Base16.decode(targetUser.getSigningPublicKey()),
-                        session.getSessionId()
-                ), Base16.decode(profile.getPrivateKey())));
+                spec.commandLine().getOut().println(
+                        api.sendSessionUpdate(new SignedMessage<>(new SessionUpdateMessage(
+                                        Base16.decode(session.getSessionPublicKey()),
+                                        Base16.decode(targetUser.getSigningPublicKey()),
+                                        session.getSessionId()
+                                ), Base16.decode(profile.getPrivateKey())))
+                                .body());
             }
         }
     }

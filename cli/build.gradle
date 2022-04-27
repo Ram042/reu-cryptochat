@@ -13,6 +13,7 @@ dependencies {
     implementation "moe.orangelabs:json:$jsonVersion"
     implementation "com.google.guava:guava:$guavaVersion"
     implementation "io.mikael:urlbuilder:$urlbuilderVersion"
+    implementation "org.jetbrains:annotations:$annotationsVersion"
 
 //    implementation "org.dizitart:nitrite:$nitriteVersion"
 //    implementation "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jacksonVersion"

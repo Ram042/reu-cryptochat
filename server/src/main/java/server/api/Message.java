@@ -21,7 +21,7 @@ public class Message {
     }
 
     public void add(Context ctx) {
-        byte[] signedMessage = Base62.decodeString(ctx.body());
+        byte[] signedMessage = Base62.decode(ctx.body());
         var m = new SignedMessage<EnvelopeMessage>(signedMessage);
 
         if (m.getAction() != Action.ENVELOPE) {
@@ -40,7 +40,7 @@ public class Message {
     }
 
     public void get(Context ctx) {
-        var m = new SignedMessage<EnvelopeGetMessage>(Base62.decodeString(
+        var m = new SignedMessage<EnvelopeGetMessage>(Base62.decode(
                 ctx.pathParam("message")
         ));
 

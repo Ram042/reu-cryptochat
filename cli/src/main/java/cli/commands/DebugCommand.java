@@ -203,4 +203,56 @@ public final class DebugCommand {
 
     }
 
+    @CommandLine.Command(name = "testInstant")
+    public void testInstantResolution() {
+        //test uniqueness of instants
+        {
+            var i1 = Instant.now();
+            var i2 = Instant.now();
+            var i3 = Instant.now();
+            var i4 = Instant.now();
+            var i5 = Instant.now();
+
+            System.out.println("Raw instant");
+            System.out.println("1 " + i1);
+            System.out.println("2 " + i2 + " dn " + (i2.getNano() - i1.getNano()));
+            System.out.println("3 " + i3 + " dn " + (i3.getNano() - i2.getNano()));
+            System.out.println("4 " + i4 + " dn " + (i4.getNano() - i3.getNano()));
+            System.out.println("5 " + i5 + " dn " + (i5.getNano() - i4.getNano()));
+            System.out.println();
+        }
+
+        {
+            System.out.println("System nanotime");
+            var n1 = System.nanoTime();
+            var n2 = System.nanoTime();
+            var n3 = System.nanoTime();
+            var n4 = System.nanoTime();
+            var n5 = System.nanoTime();
+
+            System.out.println("1 " + n1);
+            System.out.println("2 " + n2);
+            System.out.println("3 " + n3);
+            System.out.println("4 " + n4);
+            System.out.println("5 " + n5);
+            System.out.println();
+        }
+
+        {
+            var i1 = Instant.now().plusNanos(System.nanoTime() / 100 % 100);
+            var i2 = Instant.now().plusNanos(System.nanoTime() / 100 % 100);
+            var i3 = Instant.now().plusNanos(System.nanoTime() / 100 % 100);
+            var i4 = Instant.now().plusNanos(System.nanoTime() / 100 % 100);
+            var i5 = Instant.now().plusNanos(System.nanoTime() / 100 % 100);
+
+            System.out.println("Raw instant + system nanotime");
+            System.out.println("1 " + i1);
+            System.out.println("2 " + i2 + " dn " + (i2.getNano() - i1.getNano()));
+            System.out.println("3 " + i3 + " dn " + (i3.getNano() - i2.getNano()));
+            System.out.println("4 " + i4 + " dn " + (i4.getNano() - i3.getNano()));
+            System.out.println("5 " + i5 + " dn " + (i5.getNano() - i4.getNano()));
+            System.out.println();
+        }
+    }
+
 }

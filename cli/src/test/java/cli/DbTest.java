@@ -89,8 +89,8 @@ public class DbTest {
             session.putSessionInit(profile, user, new Sessions.Session("2").setInit(Instant.now(), Base16.encode(Crypto.Sign.generatePrivateKey())));
             session.putSessionInit(profile, user, new Sessions.Session("3").setInit(Instant.now(), Base16.encode(Crypto.Sign.generatePrivateKey())));
 
-            assertThat(session.getLatestSession(user)).isNotNull();
-            assertThat(session.getLatestSession(user).getSessionId()).isEqualTo("3");
+            assertThat(session.getLatestSession(profile,user)).isNotNull();
+            assertThat(session.getLatestSession(profile,user).getSessionId()).isEqualTo("3");
         }
     }
 }

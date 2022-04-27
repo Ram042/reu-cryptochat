@@ -10,7 +10,7 @@ public class Base62 {
     private Base62() {
     }
 
-    public static byte[] decodeString(String string) {
+    public static byte[] decode(String string) {
         instance = io.seruco.encoding.base62.Base62.createInstance();
         return instance.decode(string.getBytes(StandardCharsets.US_ASCII));
     }

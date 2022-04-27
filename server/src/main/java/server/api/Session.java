@@ -22,7 +22,7 @@ public class Session {
     }
 
     public void addInit(Context ctx) {
-        var m = new SignedMessage<SessionUpdateMessage>(Base62.decodeString(ctx.body()));
+        var m = new SignedMessage<SessionUpdateMessage>(Base62.decode(ctx.body()));
 
         if (m.getAction() != Action.SESSION_UPDATE) {
             ctx.status(HttpCode.BAD_REQUEST);
@@ -41,7 +41,7 @@ public class Session {
 
 
     public void getInit(Context ctx) {
-        var m = new SignedMessage<SessionGetMessage>(Base62.decodeString(
+        var m = new SignedMessage<SessionGetMessage>(Base62.decode(
                 ctx.pathParam("message")
         ));
 
