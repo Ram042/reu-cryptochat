@@ -19,6 +19,7 @@ import picocli.CommandLine;
 import java.net.URI;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
+import java.util.List;
 
 @Slf4j
 @CommandLine.Command(name = "message", description = "Message management")
@@ -32,7 +33,7 @@ public final class MessageCommand {
 
     @CommandLine.Option(names = "--name", defaultValue = "default")
     String name;
-    @CommandLine.Option(names = "--password", interactive = true)
+    @CommandLine.Option(names = "--password", defaultValue = "DefaultInsecurePassword", interactive = true)
     String password;
 
     @CommandLine.Option(names = "--dbPath", defaultValue = "cryptochat")
@@ -41,12 +42,15 @@ public final class MessageCommand {
     Api api;
 
     @CommandLine.Command(name = "send")
-    public void sendMessage(@CommandLine.Option(names = {"target"}, required = true) String targetString,
-                            @CommandLine.Parameters() String message)
+    public void sendMessage(@CommandLine.Option(names = {"--target"}, required = true) String targetString,
+                            @CommandLine.Parameters() List<String> message)
             throws Exception {
         if (api == null) {
             api = new Api(uri);
         }
+
+        LOGGER.info("Messages: {}", message);
+        message.forEach(s -> LOGGER.info("Message: {}", s));
 
         try (Database db = new Database(dbPath, password)) {
             var profile = db.getProfiles().findProfile(name);
@@ -74,7 +78,8 @@ public final class MessageCommand {
                             session.getSessionId(),
                             Base16.decode(targetUser.getSigningPublicKey()),
                             new EnvelopeMessage.EncryptedMessagePayload(
-                                    message
+                                    message.stream().reduce((s1, s2) -> s1 + " " + s2).get()
+//                                    message
                             ),
                             sharedKey
                     ),
@@ -100,9 +105,13 @@ public final class MessageCommand {
                 throw new IllegalArgumentException("No profile");
             }
 
-            var messages = api.getMessages(
-                            new SignedMessage<>(new EnvelopeGetMessage(), Base16.decode(profile.getPrivateKey())))
-                    .body();
+            var response = api.getMessages(
+                    new SignedMessage<>(new EnvelopeGetMessage(),
+                            Base16.decode(profile.getPrivateKey())));
+            if (response.statusCode() != 200) {
+                throw new RuntimeException("Bad result from server " + response.body()+ " " + response);
+            }
+            var messages = response.body();
 
             var msgs = Obj.decode((Base62.decode(messages))).getAsArray();
 
@@ -141,7 +150,7 @@ public final class MessageCommand {
     }
 
     @CommandLine.Command(name = "show")
-    public void showMessages(@CommandLine.Option(names = {"target"}, required = true) String target) throws Exception {
+    public void showMessages(@CommandLine.Option(names = {"--target"}, required = true) String target) throws Exception {
         try (Database db = new Database(dbPath, password)) {
             var profile = db.getProfiles().findProfile(name);
             if (profile == null) {

@@ -150,8 +150,7 @@ public class SessionCommandTest {
 
         //action
         sessionCommand.reply(
-                Base16.encode(targetPublicKey),
-                false
+                Base16.encode(targetPublicKey)
         );
 
         //verify

@@ -33,11 +33,11 @@ public class Api {
 
     public HttpResponse<String> sendMessage(SignedMessage<EnvelopeMessage> msg)
             throws IOException, InterruptedException {
-        return request.post("envelope", Base62.encode(msg.serialize().encode()));
+        return request.post("message", Base62.encode(msg.serialize().encode()));
     }
 
     public HttpResponse<String> getMessages(SignedMessage<EnvelopeGetMessage> msg)
             throws IOException, InterruptedException {
-        return request.get("envelope/" + Base62.encode(msg.serialize().encode()), null);
+        return request.get("message/" + Base62.encode(msg.serialize().encode()), null);
     }
 }

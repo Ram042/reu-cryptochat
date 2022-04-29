@@ -9,7 +9,7 @@ subprojects {
         slf4jVersion = "1.7.32"
         urlbuilderVersion = "2.0.9"
         base62Version = "0.1.3"
-        javalinVersion = "4.3.0"
+        javalinVersion = "4.5.0"
         xodusVersion = "2.0.1"
         annotationsVersion = "23.0.0"
 
@@ -21,7 +21,7 @@ subprojects {
 
         picocliVersion = "4.6.3"
 
-        mockitoVersion = "4.5.0"
+        mockitoVersion = "4.5.1"
         testngVersion = "7.5"
         assertjVersion = "3.22.0"
     }

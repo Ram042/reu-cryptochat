@@ -3,7 +3,6 @@ package cli.commands;
 import cli.db.Database;
 import cli.db.Profiles;
 import cli.net.Api;
-import com.google.common.base.Preconditions;
 import lib.SignedMessage;
 import lib.message.UserRegisterMessage;
 import lombok.extern.slf4j.Slf4j;
@@ -68,24 +67,14 @@ public final class ProfileCommand {
     }
 
     @CommandLine.Command(name = "print", description = "Print profile info")
-    public void printProfile(@Option(names = "--name") String name,
-                             @Option(names = "--key") String key,
+    public void printProfile(@Option(names = "--key") String key,
                              @Option(names = "--print-secret-key") boolean printSecretKey) throws Exception {
-        Profiles.Profile profile;
+        Profiles.Profile profile = null;
         try (var db = new Database(dbPath, this.password)) {
-
-            Preconditions.checkArgument(name != null ^ key != null, "Can use both name and key");
-            profile = null;
-            if (name != null) {
-                profile = db.getProfiles().getProfiles().stream()
-                        .filter(p -> p.getName() != null && p.getName().equals(name))
-                        .findAny().orElse(null);
-            }
-
-            if (key != null) {
-                profile = db.getProfiles().getProfiles().stream()
-                        .filter(p -> p.getPublicKey().equals(key))
-                        .findAny().orElse(null);
+            if (key == null) {
+                profile = db.getProfiles().findProfile(name);
+            } else {
+                profile = db.getProfiles().findProfile(key);
             }
         }
 
@@ -108,16 +97,14 @@ public final class ProfileCommand {
     }
 
     @CommandLine.Command
-    public void publish(@Option(names = "--name") String name,
-                        @Option(names = "--key") String publicKey,
-                        @Option(names = "--url", defaultValue = "http://localhost:6060/") URI url)
+    public void publish(@Option(names = "--url", defaultValue = "http://localhost:6060/") URI url)
             throws Exception {
         if (api == null) {
             api = new Api(url);
         }
         var db = new Database(dbPath, this.password);
 
-        var profile = db.getProfiles().findProfile(name, publicKey);
+        var profile = db.getProfiles().findProfile(this.name);
         db.close();
         if (profile == null) {
             throw new IllegalArgumentException("Profile not found");

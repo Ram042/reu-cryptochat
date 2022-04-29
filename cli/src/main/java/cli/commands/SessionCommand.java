@@ -14,7 +14,6 @@ import lib.utils.Base62;
 import lib.utils.Crypto;
 import lombok.extern.slf4j.Slf4j;
 import moe.orangelabs.protoobj.Obj;
-import org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters;
 import org.bouncycastle.util.encoders.Hex;
 import picocli.CommandLine;
 
@@ -58,13 +57,14 @@ public final class SessionCommand {
         }
 
         //generate SESSION_INIT_MESSAGE
-        byte[] tmpKey = new byte[32];
-        new SecureRandom().nextBytes(tmpKey);
+        byte[] privateKey = new byte[32];
+        new SecureRandom().nextBytes(privateKey);
 
         byte[] seed = new byte[8];
         new SecureRandom().nextBytes(seed);
 
-        byte[] publicKey = new Ed25519PrivateKeyParameters(tmpKey).generatePublicKey().getEncoded();
+        byte[] publicKey = Crypto.DH.generatePublicKey(privateKey);
+
         SessionUpdateMessage message = new SessionUpdateMessage(
                 publicKey, Hex.decode(id), UUID.randomUUID().toString()
         );
@@ -80,19 +80,23 @@ public final class SessionCommand {
             //sign message
             signedMessage = new SignedMessage<>(message, key);
 
+            db.getUsers().addUser(new Users.User(id));
             db.getSessions().putSessionInit(
                     profile,
                     db.getUsers().getUser(id, null),
                     new Sessions.Session(
-                            UUID.randomUUID().toString(),
+                            message.getId(),
                             Instant.now(),
-                            HexFormat.of().formatHex(tmpKey)
+                            HexFormat.of().formatHex(privateKey)
                     )
             );
         }
 
         //send session
         var result = api.sendSessionUpdate(signedMessage);
+        if (result.statusCode() != 200) {
+            throw new RuntimeException("Server not working " + result);
+        }
 
         spec.commandLine().getOut().println(result.body());
     }
@@ -111,6 +115,9 @@ public final class SessionCommand {
             var key = HexFormat.of().parseHex(profile.getPrivateKey());
 
             var result = api.getSession(new SignedMessage<>(new SessionGetMessage(), key));
+            if (result.statusCode() != 200) {
+                throw new RuntimeException("Server not working ");
+            }
 
             var sessions = Obj.decode(Base62.decode(result.body())).getAsArray();
 
@@ -130,13 +137,15 @@ public final class SessionCommand {
                                 Base16.encode(sessionMsg.getMessage().getSessionPublicKey())
                         )
                 );
+                LOGGER.info("Received session {} from {}",
+                        sessionMsg.getMessage().getId(),
+                        Base16.encode(sessionMsg.getPublicKey()));
             });
         }
     }
 
     @Command(name = "reply", description = "Reply to init")
-    public void reply(@Option(names = "target", required = true) String targetString,
-                      @Option(names = "--force") boolean force) throws Exception {
+    public void reply(@CommandLine.Parameters(index = "0") String targetString) throws Exception {
         if (api == null) {
             api = new Api(uri);
         }
@@ -146,8 +155,7 @@ public final class SessionCommand {
             if (profile == null) {
                 throw new IllegalArgumentException("No profile");
             }
-            var targetUser = db.getUsers().getUser(targetString, null);
-
+            var targetUser = db.getUsers().getUser(targetString);
             if (targetUser == null) {
                 throw new IllegalArgumentException("User not found");
             }
@@ -164,13 +172,18 @@ public final class SessionCommand {
                 throw new IllegalStateException("Session already initialized");
             } else {
                 session.setInit(Instant.now(), Base16.encode(Crypto.Sign.generatePrivateKey()));
-                spec.commandLine().getOut().println(
-                        api.sendSessionUpdate(new SignedMessage<>(new SessionUpdateMessage(
-                                        Base16.decode(session.getSessionPublicKey()),
-                                        Base16.decode(targetUser.getSigningPublicKey()),
-                                        session.getSessionId()
-                                ), Base16.decode(profile.getPrivateKey())))
-                                .body());
+                db.getSessions().putSessionInit(
+                        profile, targetUser, session
+                );
+                var result = api.sendSessionUpdate(new SignedMessage<>(new SessionUpdateMessage(
+                        Base16.decode(session.getSessionPublicKey()),
+                        Base16.decode(targetUser.getSigningPublicKey()),
+                        session.getSessionId()
+                ), Base16.decode(profile.getPrivateKey())));
+                if (result.statusCode() != 200) {
+                    throw new RuntimeException("Server not working " + result);
+                }
+                spec.commandLine().getOut().println(result.body());
             }
         }
     }

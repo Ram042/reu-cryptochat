@@ -195,7 +195,7 @@ public class Sessions {
                         return publicKey.equals(profile.getPublicKey());
                     })
                     //filter ready
-                    .filter(es -> es.getProperty("initTime") != null && es.getProperty("initTime") != null)
+                    .filter(es -> es.getProperty("initTime") != null && es.getProperty("responseTime") != null)
                     //find newest session
                     .sorted((o1, o2) -> {
                         //get latest instant

@@ -13,7 +13,7 @@ public class EnvelopeGetMessage extends Message {
 
     public EnvelopeGetMessage() {
         super(Action.ENVELOPE_GET);
-        this.time = Obj.integer(Instant.EPOCH.getEpochSecond());
+        this.time = Obj.integer(Instant.now().getEpochSecond());
     }
 
     public EnvelopeGetMessage(byte[] message) {

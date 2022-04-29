@@ -5,7 +5,6 @@ import jetbrains.exodus.ByteIterable;
 import jetbrains.exodus.bindings.LongBinding;
 import jetbrains.exodus.env.Cursor;
 import jetbrains.exodus.env.Store;
-import lib.Message;
 import lib.SignedMessage;
 import lib.message.SessionUpdateMessage;
 import server.db.SessionDatabase;
@@ -14,6 +13,8 @@ import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class XodusSessionDatabase implements SessionDatabase {
 
@@ -32,8 +33,8 @@ public class XodusSessionDatabase implements SessionDatabase {
         return result;
     }
 
-    private void addMessage(Message message) {
-        byte[] key = ((SessionUpdateMessage) message).getTarget();
+    private void addMessage(SignedMessage<SessionUpdateMessage> message) {
+        byte[] key = message.getMessage().getTarget();
 
         byte[] value = ByteBuffer.allocate(Long.BYTES + message.serialize().encode().length)
                 .putLong(Instant.now().getEpochSecond())
@@ -45,27 +46,40 @@ public class XodusSessionDatabase implements SessionDatabase {
 
     @Override
     public void addSessionInit(SignedMessage<SessionUpdateMessage> message) {
-        addMessage(message.getMessage());
+        addMessage(message);
     }
 
     @Override
     public void addSessionResponse(SignedMessage<SessionUpdateMessage> message) {
-        addMessage(message.getMessage());
+        addMessage(message);
     }
 
     public SignedMessage<SessionUpdateMessage>[] getSessionUpdates(byte[] target) {
         var l = store.getEnvironment().computeInReadonlyTransaction(txn -> {
             try (Cursor cursor = store.openCursor(txn)) {
-                final ByteIterable v = cursor.getSearchKey(new ArrayByteIterable(target));
-                if (v != null) {
+                final ByteIterable first = cursor.getSearchKey(new ArrayByteIterable(target));
+                if (first != null) {
                     ArrayList<SignedMessage<SessionUpdateMessage>> list = new ArrayList<>();
+
+                    list.add(new SignedMessage<>(
+                            Arrays.copyOfRange(
+                                    first.getBytesUnsafe(),
+                                    Long.BYTES,
+                                    first.getBytesUnsafe().length)
+                    ));
+
                     while (cursor.getNextDup()) {
                         var arr = new ArrayByteIterable(cursor.getValue());
-                        list.add(new SignedMessage<>(arr.getBytesUnsafe()));
+                        list.add(new SignedMessage<>(
+                                Arrays.copyOfRange(
+                                        arr.getBytesUnsafe(),
+                                        Long.BYTES,
+                                        arr.getBytesUnsafe().length)
+                        ));
                     }
                     return list;
                 } else {
-                    return null;
+                    return List.of();
                 }
             }
         });

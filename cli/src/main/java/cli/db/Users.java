@@ -1,6 +1,5 @@
 package cli.db;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Streams;
 import jetbrains.exodus.entitystore.PersistentEntityStore;
 import lib.utils.Base16;
@@ -68,22 +67,17 @@ public class Users {
     }
 
     public User getUser(String key, String name) {
-        Preconditions.checkArgument(name != null ^ key != null, "Can use both name and key");
-        User user = null;
+        return getUsers().stream()
+                .filter(u -> {
+                    var keyEquals = u.getSigningPublicKey().equals(key);
 
-        if (key != null) {
-            user = getUsers().stream()
-                    .filter(u -> u.getSigningPublicKey().equals(key))
-                    .findAny().orElse(null);
-        }
-
-        if (name != null) {
-            user = getUsers().stream()
-                    .filter(u -> u.getName() != null && u.getName().equals(name))
-                    .findAny().orElse(null);
-        }
-
-        return user;
+                    if (name == null) {
+                        return keyEquals;
+                    } else {
+                        return keyEquals || name.equals(u.getName());
+                    }
+                })
+                .findAny().orElse(null);
     }
 
     @Getter

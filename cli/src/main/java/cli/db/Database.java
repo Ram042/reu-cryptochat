@@ -33,7 +33,8 @@ import static moe.orangelabs.json.Json.object;
 public class Database implements Closeable {
     public static final Logger LOGGER = LoggerFactory.getLogger(Database.class);
     private static final int KEY_LENGTH = 256;
-    private static final int PBKDF2_ITERATIONS = 10_000;
+    private static final int PBKDF2_ITERATIONS = 100;
+//    private static final int PBKDF2_ITERATIONS = 10_000;
 
     @Getter(AccessLevel.PACKAGE)
     private final Environment env;

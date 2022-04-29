@@ -27,13 +27,14 @@ public class ProfileCommandTest {
         when(responseMock.body()).thenReturn("200");
 
         profileCommand.password = "abc";
+        profileCommand.name = "default";
         profileCommand.api = apiMock;
         profileCommand.dbPath = DbTest.generateDbPath();
         profileCommand.spec = mock(CommandLine.Model.CommandSpec.class, Answers.RETURNS_DEEP_STUBS);
 
         //action
         profileCommand.init();
-        profileCommand.publish("default", null, null);
+        profileCommand.publish(null);
 
         //verify
         var arg = ArgumentCaptor.forClass(SignedMessage.class);

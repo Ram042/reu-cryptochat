@@ -20,12 +20,12 @@ public class Server {
         javalin.get("/user", user::get);
 
         Session session = new Session(database.getSessionDatabase());
-        javalin.post("/session/init", session::addInit);
+        javalin.post("/session", session::addInit);
         javalin.get("/session/{message}", session::getInit);
 
         Message message = new Message(database.getMessageDatabase());
         javalin.post("/message", message::add);
-        javalin.get("/message", message::get);
+        javalin.get("/message/{message}", message::get);
     }
 
     public static void main(String[] args) {
