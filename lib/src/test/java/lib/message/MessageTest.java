@@ -27,7 +27,7 @@ public class MessageTest {
         assertThat(c1.getAction()).isEqualTo(SESSION_GET);
         assertThat(c2.getAction()).isEqualTo(SESSION_GET);
 
-        var e1 = new EnvelopeMessage("test", new byte[16], new EnvelopeMessage.EncryptedMessagePayload(""), new byte[32]);
+        var e1 = new EnvelopeMessage("test", new byte[16], new EnvelopeMessage.EnvelopePayload(""), new byte[32]);
         var e2 = new EnvelopeMessage(e1.serialize().encode());
         assertThat(e1.getAction()).isEqualTo(ENVELOPE);
         assertThat(e2.getAction()).isEqualTo(ENVELOPE);

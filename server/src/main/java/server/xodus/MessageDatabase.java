@@ -5,27 +5,24 @@ import jetbrains.exodus.env.Cursor;
 import jetbrains.exodus.env.Store;
 import lib.SignedMessage;
 import lib.message.EnvelopeMessage;
-import server.db.MessageDatabase;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class XodusMessageDatabase implements MessageDatabase {
+public class MessageDatabase {
 
     private final Store store;
 
-    public XodusMessageDatabase(Store store) {
+    public MessageDatabase(Store store) {
         this.store = store;
     }
 
-    @Override
     public void addMessage(byte[] target, byte[] message) {
         store.getEnvironment().executeInTransaction(txn -> store.put(txn,
                 new ArrayByteIterable(target), new ArrayByteIterable(message)));
     }
 
-    @Override
     public List<SignedMessage<EnvelopeMessage>> getMessages(byte[] target) {
         return store.getEnvironment().computeInReadonlyTransaction(txn -> {
             var list = new ArrayList<ArrayByteIterable>();

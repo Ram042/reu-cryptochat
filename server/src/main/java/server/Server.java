@@ -1,10 +1,10 @@
 package server;
 
 import io.javalin.Javalin;
-import server.api.Message;
-import server.api.Session;
-import server.api.User;
-import server.xodus.XodusDatabase;
+import server.api.MessageApi;
+import server.api.SessionApi;
+import server.api.UserApi;
+import server.xodus.Database;
 
 public class Server {
 
@@ -13,17 +13,17 @@ public class Server {
     public Server() {
         javalin = Javalin.create();
 
-        XodusDatabase database = new XodusDatabase();
+        Database database = new Database();
 
-        User user = new User(database.getUserDatabase());
+        UserApi user = new UserApi(database.getUserDatabase());
         javalin.post("/user", user::create);
         javalin.get("/user", user::get);
 
-        Session session = new Session(database.getSessionDatabase());
+        SessionApi session = new SessionApi(database.getSessionDatabase());
         javalin.post("/session", session::addInit);
         javalin.get("/session/{message}", session::getInit);
 
-        Message message = new Message(database.getMessageDatabase());
+        MessageApi message = new MessageApi(database.getMessageDatabase());
         javalin.post("/message", message::add);
         javalin.get("/message/{message}", message::get);
     }

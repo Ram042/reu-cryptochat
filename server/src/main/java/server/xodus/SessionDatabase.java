@@ -7,7 +7,6 @@ import jetbrains.exodus.env.Cursor;
 import jetbrains.exodus.env.Store;
 import lib.SignedMessage;
 import lib.message.SessionUpdateMessage;
-import server.db.SessionDatabase;
 
 import java.nio.ByteBuffer;
 import java.time.Duration;
@@ -16,11 +15,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class XodusSessionDatabase implements SessionDatabase {
+public class SessionDatabase {
 
     private final Store store;
 
-    public XodusSessionDatabase(Store store) {
+    public SessionDatabase(Store store) {
         this.store = store;
     }
 
@@ -44,12 +43,10 @@ public class XodusSessionDatabase implements SessionDatabase {
                 store.put(txn, new ArrayByteIterable(key), new ArrayByteIterable(value)));
     }
 
-    @Override
     public void addSessionInit(SignedMessage<SessionUpdateMessage> message) {
         addMessage(message);
     }
 
-    @Override
     public void addSessionResponse(SignedMessage<SessionUpdateMessage> message) {
         addMessage(message);
     }
@@ -86,7 +83,6 @@ public class XodusSessionDatabase implements SessionDatabase {
         return l.toArray(new SignedMessage[0]);
     }
 
-    @Override
     public void prune() {
         store.getEnvironment().executeInTransaction(txn -> {
             try (Cursor cursor = store.openCursor(txn)) {

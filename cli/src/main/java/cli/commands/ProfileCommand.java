@@ -96,7 +96,7 @@ public final class ProfileCommand {
         spec.commandLine().getOut().println(result);
     }
 
-    @CommandLine.Command
+    @CommandLine.Command(name = "publish")
     public void publish(@Option(names = "--url", defaultValue = "http://localhost:6060/") URI url)
             throws Exception {
         if (api == null) {

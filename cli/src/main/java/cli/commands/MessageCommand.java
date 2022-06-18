@@ -68,16 +68,16 @@ public final class MessageCommand {
                 throw new IllegalStateException("No usable sessions");
             }
 
-            var sharedKey = Crypto.DH.generateSharedKey(
+            var sharedKey = Crypto.Hash.SHA3_256(Crypto.DH.generateSharedKey(
                     Base16.decode(session.getSessionPrivateKey()),
                     Base16.decode(session.getTargetSessionPublicKey())
-            );
+            ));
 
             var msg = new SignedMessage<>(
                     new EnvelopeMessage(
                             session.getSessionId(),
                             Base16.decode(targetUser.getSigningPublicKey()),
-                            new EnvelopeMessage.EncryptedMessagePayload(
+                            new EnvelopeMessage.EnvelopePayload(
                                     message.stream().reduce((s1, s2) -> s1 + " " + s2).get()
 //                                    message
                             ),
@@ -109,7 +109,7 @@ public final class MessageCommand {
                     new SignedMessage<>(new EnvelopeGetMessage(),
                             Base16.decode(profile.getPrivateKey())));
             if (response.statusCode() != 200) {
-                throw new RuntimeException("Bad result from server " + response.body()+ " " + response);
+                throw new RuntimeException("Bad result from server " + response.body() + " " + response);
             }
             var messages = response.body();
 
@@ -130,10 +130,11 @@ public final class MessageCommand {
                         spec.commandLine().getOut().println("Warning: no session " + msg.getSessionId());
                     } else {
                         try {
-                            var dec = msg.decrypt(Crypto.DH.generateSharedKey(
-                                    Base16.decode(session.getSessionPrivateKey()),
-                                    Base16.decode(session.getTargetSessionPublicKey())
-                            ));
+                            var dec = msg.decrypt(Crypto.Hash.SHA3_256(
+                                    Crypto.DH.generateSharedKey(
+                                            Base16.decode(session.getSessionPrivateKey()),
+                                            Base16.decode(session.getTargetSessionPublicKey())
+                                    )));
                             Messages.Message message = new Messages.Message(
                                     dec.getMessage(),
                                     dec.getTime()

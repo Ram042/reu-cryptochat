@@ -40,7 +40,7 @@ public class EnvelopeMessage extends Message {
         checkArgument(nonce.length == 12);
     }
 
-    public EnvelopeMessage(String sessionId, byte[] target, EncryptedMessagePayload messagePayload, byte[] key)
+    public EnvelopeMessage(String sessionId, byte[] target, EnvelopePayload envelopePayload, byte[] key)
             throws GeneralSecurityException {
         super(Action.ENVELOPE);
         this.target = target;
@@ -51,7 +51,7 @@ public class EnvelopeMessage extends Message {
         nonce = new byte[12];
         new SecureRandom().nextBytes(nonce);
 
-        var message = messagePayload.serialize().encode();
+        var message = envelopePayload.serialize().encode();
         //padding
         int newSize = (message.length / 64) * 64 + 64;
         var newMessage = new byte[newSize];
@@ -82,27 +82,27 @@ public class EnvelopeMessage extends Message {
         return target.clone();
     }
 
-    public EncryptedMessagePayload decrypt(byte[] key) throws GeneralSecurityException {
-        return new EncryptedMessagePayload(Crypto.Encrypt.decrypt(payload, key, nonce));
+    public EnvelopePayload decrypt(byte[] key) throws GeneralSecurityException {
+        return new EnvelopePayload(Crypto.Encrypt.decrypt(payload, key, nonce));
     }
 
-    public static class EncryptedMessagePayload implements ObjSerializable {
+    public static class EnvelopePayload implements ObjSerializable {
 
         private final Instant time;
         private final String message;
 
-        public EncryptedMessagePayload(byte[] message) {
+        public EnvelopePayload(byte[] message) {
             var map = Obj.decode(message).getAsMap();
             time = Instant.ofEpochMilli(map.getInteger("TIME").value.longValueExact());
             this.message = map.getString("MESSAGE").getString();
         }
 
-        public EncryptedMessagePayload(Instant time, String message) {
+        public EnvelopePayload(Instant time, String message) {
             this.time = time;
             this.message = message;
         }
 
-        public EncryptedMessagePayload(String message) {
+        public EnvelopePayload(String message) {
             this.message = message;
             this.time = Instant.now();
         }

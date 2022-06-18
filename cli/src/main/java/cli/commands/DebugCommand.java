@@ -1,5 +1,6 @@
 package cli.commands;
 
+import lib.utils.Crypto;
 import moe.orangelabs.protoobj.Obj;
 import org.bouncycastle.crypto.agreement.X25519Agreement;
 import org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters;
@@ -20,8 +21,7 @@ import java.security.spec.EdECPrivateKeySpec;
 import java.security.spec.NamedParameterSpec;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.Random;
+import java.util.*;
 import java.util.function.Consumer;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -41,6 +41,39 @@ public final class DebugCommand {
                 System.out.println(s);
             });
         });
+    }
+
+    @CommandLine.Command(name = "ecdhUniform")
+    public void ecdhUniformTest() {
+        var rand = new SecureRandom();
+        final int keys = 100_000;
+        var bitCount = new int[256];
+
+        for (int ti = 0; ti < keys; ti++) {
+            byte[] s1 = new byte[32];
+            rand.nextBytes(s1);
+
+
+            byte[] s2 = new byte[32];
+            rand.nextBytes(s2);
+            byte[] p2 = Crypto.DH.generatePublicKey(s2);
+
+            var shared = Crypto.Hash.SHA3_256(Crypto.DH.generateSharedKey(s1, p2));
+
+            var bits = BitSet.valueOf(shared);
+
+            for (int ki = 0; ki < 256; ki++) {
+                if (bits.get(ki)) {
+                    bitCount[ki]++;
+                }
+            }
+        }
+
+        for (int i = 0; i < bitCount.length; i++) {
+            if (bitCount[i] > (keys * 0.55f) || bitCount[i] < (keys * 0.45f)) {
+                System.out.println("pos " + i + " prob " + (1f * bitCount[i] / keys));
+            }
+        }
     }
 
     @CommandLine.Command(name = "dh")

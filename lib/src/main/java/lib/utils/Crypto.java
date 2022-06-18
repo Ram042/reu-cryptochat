@@ -1,6 +1,8 @@
 package lib.utils;
 
 import org.bouncycastle.crypto.agreement.X25519Agreement;
+import org.bouncycastle.crypto.digests.SHA256Digest;
+import org.bouncycastle.crypto.digests.SHA3Digest;
 import org.bouncycastle.crypto.params.X25519PrivateKeyParameters;
 import org.bouncycastle.crypto.params.X25519PublicKeyParameters;
 import org.bouncycastle.math.ec.rfc8032.Ed25519;
@@ -93,6 +95,26 @@ public final class Crypto {
             agreement.calculateAgreement(publicParams, result, 0);
             return result;
         }
+    }
+
+    public static final class Hash {
+
+        public static byte[] SHA3_256(byte[] in) {
+            var digest = new SHA3Digest(256);
+            digest.update(in, 0, in.length);
+            var out = new byte[256 / 8];
+            digest.doFinal(out, 0);
+            return out;
+        }
+
+        public static byte[] SHA256(byte[] in) {
+            SHA256Digest sha = new SHA256Digest();
+            sha.update(in, 0, in.length);
+            byte[] out = new byte[32];
+            sha.doFinal(out, 0);
+            return out;
+        }
+
     }
 
 }

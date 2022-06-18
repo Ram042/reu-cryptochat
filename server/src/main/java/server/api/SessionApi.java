@@ -4,27 +4,27 @@ import io.javalin.http.Context;
 import io.javalin.http.HttpCode;
 import lib.Action;
 import lib.SignedMessage;
-import lib.message.EnvelopeGetMessage;
-import lib.message.EnvelopeMessage;
+import lib.message.SessionGetMessage;
+import lib.message.SessionUpdateMessage;
 import lib.utils.Base62;
 import moe.orangelabs.protoobj.types.ObjArray;
-import server.db.MessageDatabase;
+import server.xodus.SessionDatabase;
 
 import java.time.Duration;
 import java.time.Instant;
 
-public class Message {
-    private final MessageDatabase messageDatabase;
+public class SessionApi {
 
-    public Message(MessageDatabase messageDatabase) {
-        this.messageDatabase = messageDatabase;
+    private final SessionDatabase sessionDatabase;
+
+    public SessionApi(SessionDatabase sessionDatabase) {
+        this.sessionDatabase = sessionDatabase;
     }
 
-    public void add(Context ctx) {
-        byte[] signedMessage = Base62.decode(ctx.body());
-        var m = new SignedMessage<EnvelopeMessage>(signedMessage);
+    public void addInit(Context ctx) {
+        var m = new SignedMessage<SessionUpdateMessage>(Base62.decode(ctx.body()));
 
-        if (m.getAction() != Action.ENVELOPE) {
+        if (m.getAction() != Action.SESSION_UPDATE) {
             ctx.status(HttpCode.BAD_REQUEST);
             ctx.result("bad msg");
             return;
@@ -36,15 +36,16 @@ public class Message {
             return;
         }
 
-        messageDatabase.addMessage(m.getMessage().getTarget(), signedMessage);
+        sessionDatabase.addSessionInit(m);
     }
 
-    public void get(Context ctx) {
-        var m = new SignedMessage<EnvelopeGetMessage>(Base62.decode(
+
+    public void getInit(Context ctx) {
+        var m = new SignedMessage<SessionGetMessage>(Base62.decode(
                 ctx.pathParam("message")
         ));
 
-        if (m.getAction() != Action.ENVELOPE_GET) {
+        if (m.getAction() != Action.SESSION_GET) {
             ctx.status(HttpCode.BAD_REQUEST);
             ctx.result("bad msg");
             return;
@@ -66,8 +67,8 @@ public class Message {
             return;
         }
 
-        var messages = messageDatabase.getMessages(m.getPublicKey());
+        var messages = sessionDatabase.getSessionUpdates(m.getPublicKey());
 
-        ctx.result(Base62.encode(new ObjArray(messages).encode()));
+        ctx.result(Base62.encode(new ObjArray((Object[]) messages).encode()));
     }
 }

@@ -12,11 +12,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class SessionDatabaseTest {
 
-    private XodusDatabase db;
+    private Database db;
 
     @BeforeSuite
     public void initDb() {
-        db = new XodusDatabase();
+        db = new Database();
     }
 
     @BeforeTest

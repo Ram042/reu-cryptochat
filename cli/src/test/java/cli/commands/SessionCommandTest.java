@@ -48,6 +48,7 @@ public class SessionCommandTest {
         var responseMock = mock(HttpResponse.class);
         when(apiMock.sendSessionUpdate(any())).thenReturn(responseMock);
         when(responseMock.body()).thenReturn("200");
+        when(responseMock.statusCode()).thenReturn(200);
 
         sessionCommand.password = "abc";
         sessionCommand.api = apiMock;
@@ -92,6 +93,7 @@ public class SessionCommandTest {
                 ), targetPrivateKey)
 
         ).encode()));
+        when(responseMock.statusCode()).thenReturn(200);
 
         sessionCommand.password = "abc";
         sessionCommand.api = apiMock;
@@ -141,6 +143,7 @@ public class SessionCommandTest {
         var responseMock = mock(HttpResponse.class);
         when(apiMock.sendSessionUpdate(any())).thenReturn(responseMock);
         when(responseMock.body()).thenReturn("200");
+        when(responseMock.statusCode()).thenReturn(200);
 
         sessionCommand.password = "abc";
         sessionCommand.api = apiMock;

@@ -21,6 +21,7 @@ import picocli.CommandLine;
 import java.net.http.HttpResponse;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -81,7 +82,7 @@ public class MessageCommandTest {
         //action
         messageCommand.sendMessage(
                 Base16.encode(targetPublicKey),
-                "Hello World!"
+                List.of("Hello World!")
         );
 
         //verify
@@ -91,10 +92,10 @@ public class MessageCommandTest {
         assertThat(arg.getValue().verify(Action.ENVELOPE)).isTrue();
         var msg = ((EnvelopeMessage) arg.getValue().getMessage());
         assertThat(msg.decrypt(
-                Crypto.DH.generateSharedKey(
+                Crypto.Hash.SHA3_256(Crypto.DH.generateSharedKey(
                         profileEphemeralPrivateKey,
                         Crypto.DH.generatePublicKey(targetEphemeralPrivateKey)
-                )
+                ))
         ).getMessage()).isEqualTo("Hello World!");
 
 
@@ -154,17 +155,18 @@ public class MessageCommandTest {
                         new EnvelopeMessage(
                                 "test",
                                 Base16.decode(profile.getPublicKey()),
-                                new EnvelopeMessage.EncryptedMessagePayload(
+                                new EnvelopeMessage.EnvelopePayload(
                                         "Hello World!!"
                                 ),
-                                Crypto.DH.generateSharedKey(
+                                Crypto.Hash.SHA3_256(Crypto.DH.generateSharedKey(
                                         profileEphemeralPrivateKey,
                                         Crypto.DH.generatePublicKey(targetEphemeralPrivateKey)
-                                )
+                                ))
                         ),
                         Base16.decode(profile.getPrivateKey())
                 )
         ).encode()));
+        when(responseMock.statusCode()).thenReturn(200);
 
         messageCommand.password = "abc";
         messageCommand.api = apiMock;

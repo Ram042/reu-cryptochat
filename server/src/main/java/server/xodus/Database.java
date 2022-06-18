@@ -4,19 +4,15 @@ import jetbrains.exodus.env.Environment;
 import jetbrains.exodus.env.Environments;
 import jetbrains.exodus.env.Store;
 import jetbrains.exodus.env.StoreConfig;
-import server.db.Database;
-import server.db.MessageDatabase;
-import server.db.SessionDatabase;
-import server.db.UserDatabase;
 
-public class XodusDatabase implements Database {
+public class Database {
 
     private final Environment environment;
     private Store userStore;
     private Store messageStore;
     private Store sessionStore;
 
-    public XodusDatabase() {
+    public Database() {
         environment = Environments.newInstance("cryptochat");
 
         initStores();
@@ -31,19 +27,16 @@ public class XodusDatabase implements Database {
                 environment.openStore("messages", StoreConfig.WITH_DUPLICATES, txn));
     }
 
-    @Override
     public MessageDatabase getMessageDatabase() {
-        return new XodusMessageDatabase(messageStore);
+        return new MessageDatabase(messageStore);
     }
 
-    @Override
     public UserDatabase getUserDatabase() {
-        return new XodusUserDatabase(userStore);
+        return new UserDatabase(userStore);
     }
 
-    @Override
     public SessionDatabase getSessionDatabase() {
-        return new XodusSessionDatabase(sessionStore);
+        return new SessionDatabase(sessionStore);
     }
 
     void clear() {

@@ -38,7 +38,7 @@ compileJava {
 }
 
 application {
-    mainClass = "cli.Main"
+    mainClass = "cli.Cli"
 }
 
 run {
@@ -53,6 +53,8 @@ test {
     useTestNG()
     workingDir project.buildDir
     systemProperties = [
-            "org.slf4j.simpleLogger.log.jetbrains.exodus.io.FileDataWriter": "off"
+            "org.slf4j.simpleLogger.log.jetbrains.exodus.io.FileDataWriter": "off",
+            "org.slf4j.simpleLogger.log.jetbrains.exodus.env.EnvironmentImpl": "off",
+            "org.slf4j.simpleLogger.log.jetbrains.exodus": "off"
     ]
 }

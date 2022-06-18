@@ -23,15 +23,15 @@ import static com.google.common.base.Preconditions.checkNotNull;
 @CommandLine.Command(name = "cli",
         version = "0.0",
         subcommands = {ProfileCommand.class, DebugCommand.class, SessionCommand.class, MessageCommand.class},mixinStandardHelpOptions = true)
-public class Main
+public final class Cli
         implements Runnable {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(Cli.class);
 
     public static void main(String[] args) {
         initCrypto();
 
-        System.exit(new CommandLine(new Main()).execute(args));
+        System.exit(new CommandLine(new Cli()).execute(args));
     }
 
     private static void initCrypto() {
