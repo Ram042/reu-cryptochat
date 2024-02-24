@@ -4,6 +4,7 @@ import org.jetbrains.exposed.dao.EntityClass
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IdTable
 import org.jetbrains.exposed.sql.Column
+import org.jetbrains.exposed.sql.transactions.transaction
 import java.security.SecureRandom
 import java.util.*
 import kotlin.io.encoding.ExperimentalEncodingApi
@@ -66,4 +67,21 @@ class PrivateKey(
 
 fun newPrivateKey(): PrivateKey = PrivateKey(SecureRandom().generateSeed(256 / 8))
 
+fun getDefaultUser(): User = transaction {
+    User.find {
+        Users.privateKey.isNotNull()
+    }.firstOrNull()
+} ?: transaction {
+    User.new {
+        val key = newPrivateKey()
+        privateKey = key
+        publicKey = key.publicKey
+    }
+}
 
+
+fun getAccounts(): List<User> = transaction {
+    User.find {
+        Users.privateKey.isNotNull()
+    }.toList()
+}

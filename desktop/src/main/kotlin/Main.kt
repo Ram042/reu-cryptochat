@@ -14,21 +14,8 @@ fun main() = application {
         SchemaUtils.create(Users)
     }
 
-    val user = getDefaultUser()
-
     Window(onCloseRequest = ::exitApplication, title = "KotlinProject") {
         App()
     }
 }
 
-fun getDefaultUser(): User = transaction {
-    User.find {
-        Users.privateKey.isNotNull()
-    }.firstOrNull()
-} ?: transaction {
-    User.new {
-        val key = newPrivateKey()
-        privateKey = key
-        publicKey = key.publicKey
-    }
-}
