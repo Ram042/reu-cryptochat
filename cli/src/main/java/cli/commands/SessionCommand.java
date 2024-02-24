@@ -85,7 +85,7 @@ public final class SessionCommand {
                     profile,
                     db.getUsers().getUser(id, null),
                     new Sessions.Session(
-                            message.getId(),
+                            message.id,
                             Instant.now(),
                             HexFormat.of().formatHex(privateKey)
                     )
@@ -128,18 +128,18 @@ public final class SessionCommand {
                     return;
                 }
 
-                db.getUsers().addUser(new Users.User(Base16.encode(sessionMsg.getPublicKey())));
+                db.getUsers().addUser(new Users.User(Base16.encode(sessionMsg.publicKey)));
                 db.getSessions().putSessionResponse(
                         profile,
-                        new Users.User(Base16.encode(sessionMsg.getPublicKey())),
-                        new Sessions.Session(sessionMsg.getMessage().getId()).setResponse(
+                        new Users.User(Base16.encode(sessionMsg.publicKey)),
+                        new Sessions.Session(sessionMsg.getMessage().id).setResponse(
                                 Instant.now(),
                                 Base16.encode(sessionMsg.getMessage().getSessionPublicKey())
                         )
                 );
                 LOGGER.info("Received session {} from {}",
-                        sessionMsg.getMessage().getId(),
-                        Base16.encode(sessionMsg.getPublicKey()));
+                        sessionMsg.getMessage().id,
+                        Base16.encode(sessionMsg.publicKey));
             });
         }
     }

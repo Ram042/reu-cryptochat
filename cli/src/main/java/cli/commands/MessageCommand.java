@@ -120,14 +120,14 @@ public final class MessageCommand {
                 sig.verify(Action.ENVELOPE);
                 var msg = sig.getMessage();
 
-                var user = db.getUsers().getUser(Base16.encode(sig.getPublicKey()));
+                var user = db.getUsers().getUser(Base16.encode(sig.publicKey));
                 if (user == null) {
                     spec.commandLine().getOut().println("Warning: received message from unknown user");
                 } else {
-                    var session = db.getSessions().getSession(msg.getSessionId());
+                    var session = db.getSessions().getSession(msg.sessionId);
 
                     if (session == null) {
-                        spec.commandLine().getOut().println("Warning: no session " + msg.getSessionId());
+                        spec.commandLine().getOut().println("Warning: no session " + msg.sessionId);
                     } else {
                         try {
                             var dec = msg.decrypt(Crypto.Hash.SHA3_256(
@@ -136,11 +136,11 @@ public final class MessageCommand {
                                             Base16.decode(session.getTargetSessionPublicKey())
                                     )));
                             Messages.Message message = new Messages.Message(
-                                    dec.getMessage(),
-                                    dec.getTime()
+                                    dec.message,
+                                    dec.time
                             );
                             db.getMessages().addMessage(session, message);
-                            spec.commandLine().getOut().println("Received message for session " + msg.getSessionId());
+                            spec.commandLine().getOut().println("Received message for session " + msg.sessionId);
                         } catch (GeneralSecurityException e) {
                             throw new RuntimeException(e);
                         }

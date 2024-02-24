@@ -11,7 +11,7 @@ import jetbrains.exodus.util.LightOutputStream;
 import lib.utils.Crypto;
 import lombok.AccessLevel;
 import lombok.Getter;
-import moe.orangelabs.json.Json;
+import moe.orangelabs.protoobj.Obj;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +28,6 @@ import java.time.Instant;
 import java.util.HexFormat;
 
 import static java.nio.file.StandardOpenOption.*;
-import static moe.orangelabs.json.Json.object;
 
 public class Database implements Closeable {
     public static final Logger LOGGER = LoggerFactory.getLogger(Database.class);
@@ -58,20 +57,20 @@ public class Database implements Closeable {
             throw new NotDirectoryException("Database does not exist");
         }
 
-        var crypto = Json.parse(Files.readString(dbPath.resolve("crypto.json"))).getAsObject();
+        var crypto = Obj.decode(Files.readAllBytes(dbPath.resolve("crypto.json"))).getAsMap();
 
-        var key = HexFormat.of().parseHex(crypto.getString("bdEncryptedKey").string);
+        var key = HexFormat.of().parseHex(crypto.getString("bdEncryptedKey").getString());
 
         var dec = Crypto.Encrypt.decrypt(key,
-                Crypto.pbkdf2(password, HexFormat.of().parseHex(crypto.getString("salt").string),
+                Crypto.pbkdf2(password, HexFormat.of().parseHex(crypto.getString("salt").getString()),
                         PBKDF2_ITERATIONS, KEY_LENGTH),
-                HexFormat.of().parseHex(crypto.getString("nonce").string)
+                HexFormat.of().parseHex(crypto.getString("nonce").getString())
         );
 
         EnvironmentConfig config = new EnvironmentConfig();
         config.setCipherId("jetbrains.exodus.crypto.streamciphers.ChaChaStreamCipherProvider");
         config.setCipherKey(HexFormat.of().formatHex(dec));
-        config.setCipherBasicIV(crypto.getNumber("dbIv").longValue());
+        config.setCipherBasicIV(crypto.getInteger("dbIv").longValue());
         env = Environments.newContextualInstance(dbPath.toFile(), config);
 
         store = PersistentEntityStores.newInstance(env);
@@ -95,7 +94,7 @@ public class Database implements Closeable {
         profiles = new Profiles(store, this);
         users = new Users(store, this);
         sessions = new Sessions(store, this);
-        messages = new Messages(store,this);
+        messages = new Messages(store, this);
     }
 
     public void addProfile(Profiles.Profile profile) {
@@ -143,7 +142,7 @@ public class Database implements Closeable {
 
         Files.writeString(
                 path.resolve("crypto.json"),
-                object(
+                Obj.map(
                         "iterations", PBKDF2_ITERATIONS,
                         "bdEncryptedKey", HexFormat.of().formatHex(enc),
                         "dbIv", envIv,

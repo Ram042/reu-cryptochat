@@ -1,6 +1,0 @@
-rootProject.name = 'cryptochat'
-include 'server'
-include 'cli'
-include 'lib'
-include 'integtest'
-
