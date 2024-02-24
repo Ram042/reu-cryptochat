@@ -50,5 +50,18 @@ kotlin {
 compose.desktop {
     application {
         mainClass = "MainKt"
+        nativeDistributions {
+            includeAllModules = true
+            buildTypes.release {
+                proguard {
+                    this.isEnabled = false
+                }
+            }
+        }
     }
+}
+
+
+kotlin {
+    jvmToolchain(17)
 }

@@ -121,7 +121,6 @@ fun Account(user: User, updateUser: (User) -> Unit) {
     }
 }
 
-@OptIn(ExperimentalStdlibApi::class)
 @Composable
 fun UserIcon(user: User) {
     val key = user.publicKey.bytes
@@ -150,7 +149,7 @@ fun UserIcon(user: User) {
 
     Image(
         modifier = Modifier
-            .size(40.dp, 40.dp)
+            .size((32 + 8 * 2).dp, (32 + 8 * 2).dp)
             .padding(8.dp),
         painter = BitmapPainter(
             image = loadImageBitmap(input),
