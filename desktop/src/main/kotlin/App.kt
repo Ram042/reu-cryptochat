@@ -18,6 +18,7 @@ import java.awt.image.BufferedImage
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import javax.imageio.ImageIO
+import kotlin.experimental.xor
 
 @Composable
 @Preview
@@ -127,14 +128,19 @@ fun UserIcon(user: User) {
     val imgSize = 8
     val img = BufferedImage(imgSize, imgSize, BufferedImage.TYPE_INT_RGB)
 
-    for (x in 0..<imgSize) {
+    val half = ByteArray(imgSize * imgSize / 2)
+    for ((index, byte) in key.withIndex()) {
+        half[index % half.size] = half[index % half.size] xor byte
+    }
+
+    for (x in 0..<imgSize / 2) {
         for (y in 0..<imgSize) {
-            val byte = key[(x * y) % key.size]
-            val r = (byte * x).toUByte().toInt()
-            val g = (byte * y).toUByte().toInt()
-            val b = (byte * x * y).toUByte().toInt()
-            val color = java.awt.Color(r, g, b)
-            img.setRGB(x, y, color.rgb)
+            val byte = half[(x + 1) * (y + 1) % half.size]
+
+
+            val color = java.awt.Color.HSBtoRGB(byte.toUByte().toFloat() / 360f, 0.8f, 0.9f)
+            img.setRGB(x, y, color)
+            img.setRGB(imgSize - 1 - x, y, color)
         }
     }
 
@@ -144,7 +150,8 @@ fun UserIcon(user: User) {
 
     Image(
         modifier = Modifier
-            .size(32.dp, 32.dp),
+            .size(40.dp, 40.dp)
+            .padding(8.dp),
         painter = BitmapPainter(
             image = loadImageBitmap(input),
             filterQuality = FilterQuality.None
