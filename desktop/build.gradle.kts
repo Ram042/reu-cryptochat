@@ -18,7 +18,9 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-core:${rootProject.extra["exposedVersion"]}")
     implementation("org.jetbrains.exposed:exposed-jdbc:${rootProject.extra["exposedVersion"]}")
     implementation("org.jetbrains.exposed:exposed-dao:${rootProject.extra["exposedVersion"]}")
+    implementation("org.jetbrains.exposed:exposed-crypt:${rootProject.extra["exposedVersion"]}")
     implementation("org.xerial:sqlite-jdbc:${rootProject.extra["sqliteJdbcVersion"]}")
+    implementation("com.h2database:h2:2.2.224")
 
     testImplementation("org.slf4j:slf4j-simple:${rootProject.extra["slf4jVersion"]}")
     testImplementation(kotlin("test"))
@@ -31,6 +33,7 @@ dependencies {
     implementation(compose.ui)
     @OptIn(ExperimentalComposeLibrary::class)
     implementation(compose.components.resources)
+    implementation(compose.compiler.auto)
     implementation(compose.desktop.currentOs)
 }
 

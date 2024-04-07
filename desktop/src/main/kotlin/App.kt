@@ -1,9 +1,10 @@
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -20,11 +21,25 @@ import java.io.ByteArrayOutputStream
 import javax.imageio.ImageIO
 import kotlin.experimental.xor
 
+enum class Screens {
+    CHATS
+}
+
+@Composable
+fun App() {
+    val activeScreen by remember { mutableStateOf(Screens.CHATS) }
+    var activeUser by remember { mutableStateOf(User()) }
+
+    when (activeScreen) {
+        Screens.CHATS -> ChatScreen(activeUser) {
+            activeUser = it
+        }
+    }
+}
+
 @Composable
 @Preview
-fun App() {
-    var user by remember { mutableStateOf(getDefaultUser()) }
-
+fun ChatScreen(user: User, onUserChange: (User) -> Unit) {
     Row(Modifier.fillMaxSize()) {
         //chats
         Column(
@@ -41,7 +56,7 @@ fun App() {
                     .background(Color.Blue)
             ) {
                 Account(user) {
-                    user = it
+                    onUserChange(it)
                 }
             }
             Column(
@@ -64,6 +79,7 @@ fun App() {
     }
 }
 
+
 @Composable
 fun Account(user: User, updateUser: (User) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
@@ -75,9 +91,7 @@ fun Account(user: User, updateUser: (User) -> Unit) {
     ) {
         UserIcon(user)
         Text(
-            text = AnnotatedString(transaction {
-                "0x" + Base16.encode(user.publicKey.bytes).substring(0, 8)
-            }),
+            text = AnnotatedString("0x" + Base16.encode(user.publicKey.bytes).substring(0, 8)),
             modifier = Modifier
         )
         DropdownMenu(
@@ -87,10 +101,10 @@ fun Account(user: User, updateUser: (User) -> Unit) {
             },
             content = {
                 transaction {
-                    getAccounts()
+                    listOf(user)
                 }.forEach {
                     DropdownMenuItem(
-                        content = {
+                        text = {
                             UserIcon(it)
                             Text(transaction { "0x" + Base16.encode(it.publicKey.bytes).substring(0, 8) })
                         },
@@ -100,22 +114,14 @@ fun Account(user: User, updateUser: (User) -> Unit) {
                         }
                     )
                 }
-                DropdownMenuItem(
-                    content = {
-                        Icon(imageVector = Icons.Rounded.Add, contentDescription = "Create account")
-                    },
-                    onClick = {
-                        expanded = false
-                        val newUser = transaction {
-                            User.new {
-                                val key = newPrivateKey()
-                                privateKey = key
-                                publicKey = key.publicKey
-                            }
-                        }
-                        updateUser(newUser)
-                    }
-                )
+//                DropdownMenuItem(
+//                    text = {
+//                        Icon(imageVector = Icons.Rounded.Add, contentDescription = "Create account")
+//                    },
+//                    onClick = {
+//                        expanded = false
+//                    }
+//                )
             }
         )
     }
