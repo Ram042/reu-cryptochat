@@ -28,7 +28,7 @@ import kotlin.experimental.xor
 
 
 fun main() = application {
-    var users by rememberSaveable { mutableStateOf(listOf(User())) }
+    val users by Users.users.collectAsState()
 
     Window(
         onCloseRequest = {
@@ -40,7 +40,7 @@ fun main() = application {
         App(
             users = users,
             onCreateUser = {
-                users += it
+                Users.newUser()
             }
         )
     }
@@ -77,7 +77,7 @@ fun ChatScreen(
     onUserChange: (User) -> Unit,
     onCreateUser: (User) -> Unit
 ) {
-    var chats by remember { mutableStateOf(getChats(user)) }
+    var chats by remember { mutableStateOf(listOf<Chat>()) }
 
     Row(Modifier.fillMaxSize()) {
         //chats
@@ -193,8 +193,8 @@ fun AccountSelect(
                         }
                     },
                     onClick = {
-                        updateUser(user)
                         onClose()
+                        updateUser(user)
                     }
                 )
             }
@@ -203,8 +203,8 @@ fun AccountSelect(
                     Icon(imageVector = Icons.Rounded.Add, contentDescription = "Create account")
                 },
                 onClick = {
-                    onCreateUser(User())
                     onClose()
+                    onCreateUser(User())
                 }
             )
         }

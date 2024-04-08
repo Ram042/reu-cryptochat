@@ -14,7 +14,17 @@ import javax.crypto.spec.PBEKeySpec
 
 @Serializable
 @JvmInline
-value class PublicKey(val bytes: ByteArray)
+value class PublicKey(val bytes: ByteArray) : Comparable<PublicKey> {
+    override fun compareTo(other: PublicKey): Int {
+        val a = this.bytes
+        val b = other.bytes
+        for (i in 0 until a.size) {
+            val c = a[i].compareTo(b[i])
+            if (c != 0) return c
+        }
+        return 0
+    }
+}
 
 @Serializable
 @JvmInline
