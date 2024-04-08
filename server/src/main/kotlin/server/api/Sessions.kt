@@ -16,7 +16,7 @@ import java.time.Duration
 import java.time.Instant
 
 @RestController
-class SessionApi(val sessionDatabase: SessionDatabase) {
+class Sessions(val sessionDatabase: SessionDatabase) {
 
     @PostMapping("/session")
     fun addInit(@RequestBody m: SignedMessage<SessionUpdateMessage>) {

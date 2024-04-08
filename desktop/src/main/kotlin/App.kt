@@ -14,7 +14,6 @@ import androidx.compose.ui.res.loadImageBitmap
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import lib.Base16
-import org.jetbrains.exposed.sql.transactions.transaction
 import java.awt.image.BufferedImage
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
@@ -100,20 +99,21 @@ fun Account(user: User, updateUser: (User) -> Unit) {
                 expanded = false
             },
             content = {
-                transaction {
-                    listOf(user)
-                }.forEach {
-                    DropdownMenuItem(
-                        text = {
-                            UserIcon(it)
-                            Text(transaction { "0x" + Base16.encode(it.publicKey.bytes).substring(0, 8) })
-                        },
-                        onClick = {
-                            expanded = false
-                            updateUser(it)
-                        }
-                    )
-                }
+                listOf(user)
+                    .forEach {
+                        DropdownMenuItem(
+                            text = {
+                                Row {
+                                    UserIcon(it)
+                                    Text("0x" + Base16.encode(it.publicKey.bytes).substring(0, 8))
+                                }
+                            },
+                            onClick = {
+                                expanded = false
+                                updateUser(it)
+                            }
+                        )
+                    }
 //                DropdownMenuItem(
 //                    text = {
 //                        Icon(imageVector = Icons.Rounded.Add, contentDescription = "Create account")

@@ -14,7 +14,6 @@ class SignedMessage<T : Message>(
     val signature: ByteArray,
 ) {
 
-
     constructor(message: T, privateKey: ByteArray) : this(
         Json.encodeToString<Message>(message).encodeToByteArray(),
         Signer.getPublicKeyForPrivate(privateKey),

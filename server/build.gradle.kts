@@ -16,23 +16,29 @@ dependencies {
 
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.5.0")
 
-    implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation("org.springframework.boot:spring-boot-starter-web") {
+        exclude("ch.qos.logback", "logback-classic")
+    }
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
 //    implementation("io.javalin:javalin:${rootProject.extra["javalinVersion"]}")
 
-    implementation("org.slf4j:slf4j-api:${rootProject.extra["slf4jVersion"]}")
-    implementation("org.slf4j:slf4j-simple:${rootProject.extra["slf4jVersion"]}")
+//    implementation("org.slf4j:slf4j-api:${rootProject.extra["slf4jVersion"]}")
+//    implementation("org.slf4j:slf4j-simple:${rootProject.extra["slf4jVersion"]}")
 
     testImplementation("org.testng:testng:${rootProject.extra["testngVersion"]}")
     testImplementation("org.assertj:assertj-core:${rootProject.extra["assertjVersion"]}")
     testImplementation(kotlin("test"))
 }
 
-//tasks.run<JavaExec> {
-//    workingDir = project.layout.buildDirectory.asFile.get()
-//    systemProperties["org.slf4j.simpleLogger.log.jetbrains.exodus.io.FileDataWriter"] = "off"
-//}
+application {
+    mainClass = "server.ServerKt"
+}
+
+tasks.run<JavaExec> {
+    workingDir = project.layout.buildDirectory.asFile.get()
+    systemProperties["org.slf4j.simpleLogger.log.jetbrains.exodus.io.FileDataWriter"] = "off"
+}
 
 tasks.test {
     useJUnitPlatform()

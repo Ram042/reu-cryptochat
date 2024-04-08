@@ -17,8 +17,8 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 
 @OptIn(ExperimentalEncodingApi::class)
 @RestController
-class UserApi(private val database: UserDatabase) {
-    private val logger: Logger = LoggerFactory.getLogger(UserApi::class.java)
+class Users(private val database: UserDatabase) {
+    private val logger: Logger = LoggerFactory.getLogger(Users::class.java)
 
     @GetMapping("/user/{id}")
     fun get(@PathVariable id: String): String {
@@ -31,7 +31,7 @@ class UserApi(private val database: UserDatabase) {
         }
     }
 
-    @PostMapping
+    @PostMapping ("/user")
     fun create(@RequestBody msg: SignedMessage<RegisterUserMessage>) {
         try {
             assert(msg.verify())
