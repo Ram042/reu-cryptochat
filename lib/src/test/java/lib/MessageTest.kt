@@ -2,7 +2,6 @@ package lib
 
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import org.assertj.core.api.Assertions
 import org.assertj.core.api.Assertions.*
 import org.junit.jupiter.api.Test
 import java.util.UUID
@@ -17,11 +16,11 @@ class MessageTest {
 
     @Test
     fun testMessageEncrypt() {
-        val key = Crypto.Encrypt.generateKey()
+        val key = Encrypt.generateKey()
 
         val message = SendMessageEnvelope(
             UUID.randomUUID().toString(),
-            Crypto.Sign.generatePublicKey(Crypto.Sign.generatePrivateKey()),
+            Sign.generatePublicKey(Sign.generatePrivateKey()),
             message = SendMessageEnvelope.EnvelopePayload(message = "Hello!"),
             key = key
         )
@@ -32,7 +31,7 @@ class MessageTest {
     @Test
     fun testMessageSigning() {
         val message = GetMessageEnvelope()
-        val key = Crypto.Sign.generatePrivateKey()
+        val key = Sign.generatePrivateKey()
 
         val signedMessage = SignedMessage(message, key)
 

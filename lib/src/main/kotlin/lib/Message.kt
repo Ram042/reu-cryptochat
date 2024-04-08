@@ -10,17 +10,13 @@ import java.security.SecureRandom
 sealed class Message(val action: Action)
 
 @Serializable
-class GetMessageEnvelope(
-    val time: Instant = Clock.System.now()
-) : Message(Action.ENVELOPE_GET)
+data class GetMessageEnvelope(val time: Instant = Clock.System.now()) : Message(Action.ENVELOPE_GET)
 
 @Serializable
-class GetSessionsMessage(
-    val time: Instant = Clock.System.now()
-) : Message(Action.SESSION_GET)
+data class GetSessionsMessage(val time: Instant = Clock.System.now()) : Message(Action.SESSION_GET)
 
 @Serializable
-class RegisterUserMessage : Message(Action.USER_REGISTER)
+data class RegisterUserMessage(val time: Instant = Clock.System.now()) : Message(Action.USER_REGISTER)
 
 private fun generateNonce(): ByteArray {
     val nonce = ByteArray(12)
@@ -29,7 +25,7 @@ private fun generateNonce(): ByteArray {
 }
 
 @Serializable
-class SendMessageEnvelope(
+data class SendMessageEnvelope(
     val sessionId: String,
     @Serializable(with = ByteArrayStringSerializer::class)
     val target: ByteArray,
@@ -76,7 +72,7 @@ fun padMessage(message: SendMessageEnvelope.EnvelopePayload): ByteArray {
 }
 
 fun encryptMessage(message: ByteArray, key: ByteArray, nonce: ByteArray): ByteArray {
-    return Crypto.Encrypt.encrypt(message, key, nonce)
+    return Encrypt.encrypt(message, key, nonce)
 }
 
 @Serializable

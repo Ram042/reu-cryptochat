@@ -1,20 +1,27 @@
 package lib
 
+import kotlinx.serialization.Serializable
 import org.bouncycastle.crypto.agreement.X25519Agreement
 import org.bouncycastle.crypto.digests.SHA256Digest
 import org.bouncycastle.crypto.digests.SHA3Digest
 import org.bouncycastle.crypto.params.X25519PrivateKeyParameters
 import org.bouncycastle.crypto.params.X25519PublicKeyParameters
-import org.bouncycastle.math.ec.rfc8032.Ed25519
-import java.security.GeneralSecurityException
 import java.security.NoSuchAlgorithmException
 import java.security.SecureRandom
 import java.security.spec.InvalidKeySpecException
-import javax.crypto.Cipher
 import javax.crypto.SecretKeyFactory
-import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.PBEKeySpec
-import javax.crypto.spec.SecretKeySpec
+
+@Serializable
+@JvmInline
+value class PublicKey(val bytes: ByteArray)
+
+@Serializable
+@JvmInline
+value class PrivateKey(val bytes: ByteArray)
+
+val PrivateKey.publicKey: PublicKey
+    get() = PublicKey(Sign.generatePublicKey(this.bytes))
 
 object Crypto {
     @Throws(NoSuchAlgorithmException::class, InvalidKeySpecException::class)
@@ -26,57 +33,6 @@ object Crypto {
                 iterations, keyLength
             )
         ).encoded
-    }
-
-    object Encrypt {
-        /**
-         * ChaCha20 encrypt
-         */
-        @Throws(GeneralSecurityException::class)
-        fun encrypt(message: ByteArray, key: ByteArray, nonce: ByteArray): ByteArray {
-            val cipher = Cipher.getInstance("ChaCha20-Poly1305")
-
-            cipher.init(
-                Cipher.ENCRYPT_MODE, SecretKeySpec(key, "ChaCha20-Poly1305"),
-                IvParameterSpec(nonce)
-            )
-            return cipher.doFinal(message)
-        }
-
-        /**
-         * ChaCha20 decrypt
-         */
-        @Throws(GeneralSecurityException::class)
-        fun decrypt(message: ByteArray, key: ByteArray, nonce: ByteArray): ByteArray {
-            val cipher = Cipher.getInstance("ChaCha20-Poly1305")
-
-            cipher.init(
-                Cipher.DECRYPT_MODE, SecretKeySpec(key, "ChaCha20-Poly1305"),
-                IvParameterSpec(nonce)
-            )
-            return cipher.doFinal(message)
-        }
-
-        fun generateKey(): ByteArray = SecureRandom().generateSeed(32)
-    }
-
-    object Sign {
-        const val PRIVATE_KEY_SIZE: Int = 256
-        const val PRIVATE_KEY_ARRAY_SIZE: Int = PRIVATE_KEY_SIZE / 8
-        const val PUBLIC_KEY_SIZE: Int = 256
-        const val PUBLIC_KEY_ARRAY_SIZE: Int = PRIVATE_KEY_SIZE / 8
-
-        fun generatePublicKey(privateKey: ByteArray?): ByteArray {
-            val pub = ByteArray(256 / 8)
-            Ed25519.generatePublicKey(privateKey, 0, pub, 0)
-            return pub
-        }
-
-        fun generatePrivateKey(): ByteArray {
-            val key = ByteArray(256 / 8)
-            SecureRandom().nextBytes(key)
-            return key
-        }
     }
 
     object DH {

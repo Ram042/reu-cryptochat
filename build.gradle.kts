@@ -24,7 +24,7 @@ ext["picocliVersion"] = "4.6.3"
 ext["mockitoVersion"] = "4.5.1"
 ext["testngVersion"] = "7.5"
 ext["assertjVersion"] = "3.25.3"
-ext["exposedVersion"] = "0.47.0"
+ext["exposedVersion"] = "0.49.0"
 ext["sqliteJdbcVersion"] = "3.45.1.0"
 
 subprojects {

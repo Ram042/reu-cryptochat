@@ -35,6 +35,7 @@ dependencies {
     implementation(compose.components.resources)
     implementation(compose.compiler.auto)
     implementation(compose.desktop.currentOs)
+    implementation(compose.runtimeSaveable)
 }
 
 tasks.sorted().forEach {
@@ -52,7 +53,7 @@ kotlin {
 
 compose.desktop {
     application {
-        mainClass = "MainKt"
+        mainClass = "desktop.AppKt"
         nativeDistributions {
             includeAllModules = true
             buildTypes.release {
