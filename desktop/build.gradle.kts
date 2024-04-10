@@ -38,18 +38,14 @@ dependencies {
     implementation(compose.runtimeSaveable)
 }
 
-tasks.sorted().forEach {
-    println("$it")
-}
-
 tasks.test {
     useJUnitPlatform()
     testLogging.showStandardStreams = true
 }
+
 kotlin {
     jvmToolchain(21)
 }
-
 
 compose.desktop {
     application {

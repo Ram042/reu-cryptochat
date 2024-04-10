@@ -1,14 +1,12 @@
 package lib
 
 import com.google.common.io.BaseEncoding
-import io.seruco.encoding.base62.Base62
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-import java.nio.charset.StandardCharsets
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
@@ -29,20 +27,6 @@ object Base16 {
     }
 }
 
-object Base62 {
-    private val instance: Base62 = Base62.createInstance()
-
-    @JvmStatic
-    fun encode(string: String): ByteArray {
-        return instance.decode(string.toByteArray(StandardCharsets.US_ASCII))
-    }
-
-    @JvmStatic
-    fun decode(bytes: ByteArray?): String {
-        return String(instance.encode(bytes), StandardCharsets.US_ASCII)
-    }
-}
-
 @OptIn(ExperimentalEncodingApi::class)
 public object ByteArrayStringSerializer : KSerializer<ByteArray> {
 
@@ -55,5 +39,4 @@ public object ByteArrayStringSerializer : KSerializer<ByteArray> {
     override fun serialize(encoder: Encoder, value: ByteArray) {
         encoder.encodeString(Base64.encode(value))
     }
-
 }

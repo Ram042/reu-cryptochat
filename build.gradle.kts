@@ -1,9 +1,8 @@
 plugins {
     id("com.github.ben-manes.versions") version "0.51.0"
     id("org.jetbrains.kotlin.jvm") version "1.9.21" apply false
-    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.21" apply false
-    id("org.jetbrains.compose") version "1.5.12" apply false
-    id("org.springframework.boot") version "3.2.1" apply false
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.23" apply false
+    id("org.jetbrains.compose") version "1.6.1" apply false
     id("io.spring.dependency-management") version "1.1.4" apply false
     id("idea")
 }

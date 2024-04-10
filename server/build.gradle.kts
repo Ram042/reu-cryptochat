@@ -1,47 +1,50 @@
 plugins {
     id("java")
     id("application")
-    id("org.springframework.boot")
-    id("io.spring.dependency-management")
     id("org.jetbrains.kotlin.jvm")
     id("org.jetbrains.kotlin.plugin.serialization")
+    id("com.github.ben-manes.versions") version "0.51.0"
+    id("io.ktor.plugin") version "2.3.9"
+    id("idea")
 }
 
 dependencies {
     implementation(project(":lib"))
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:${rootProject.extra["jsonVersion"]}")
     implementation("org.bouncycastle:bcprov-jdk15on:${rootProject.extra["bouncycastleVersion"]}")
-    implementation("org.jetbrains.xodus:xodus-openAPI:${rootProject.extra["xodusVersion"]}")
-    implementation("org.jetbrains.xodus:xodus-environment:${rootProject.extra["xodusVersion"]}")
-
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.5.0")
 
-    implementation("org.springframework.boot:spring-boot-starter-web") {
-        exclude("ch.qos.logback", "logback-classic")
-    }
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
-//    implementation("io.javalin:javalin:${rootProject.extra["javalinVersion"]}")
-
-//    implementation("org.slf4j:slf4j-api:${rootProject.extra["slf4jVersion"]}")
-//    implementation("org.slf4j:slf4j-simple:${rootProject.extra["slf4jVersion"]}")
-
-    testImplementation("org.testng:testng:${rootProject.extra["testngVersion"]}")
     testImplementation("org.assertj:assertj-core:${rootProject.extra["assertjVersion"]}")
     testImplementation(kotlin("test"))
+
+    implementation("io.ktor:ktor-server-content-negotiation-jvm")
+    implementation("io.ktor:ktor-server-core-jvm")
+    implementation("io.ktor:ktor-serialization-kotlinx-json-jvm")
+    implementation("io.ktor:ktor-server-netty-jvm")
+    testImplementation("io.ktor:ktor-client-content-negotiation:2.1.1")
+    testImplementation("io.ktor:ktor-server-tests-jvm")
+    testImplementation("org.slf4j:slf4j-simple:${rootProject.extra["slf4jVersion"]}")
 }
 
 application {
     mainClass = "server.ServerKt"
+    val isDevelopment: Boolean = project.ext.has("development")
+    applicationDefaultJvmArgs = listOf("-Dio.ktor.development=$isDevelopment")
 }
 
 tasks.run<JavaExec> {
     workingDir = project.layout.buildDirectory.asFile.get()
-    systemProperties["org.slf4j.simpleLogger.log.jetbrains.exodus.io.FileDataWriter"] = "off"
 }
 
 tasks.test {
     useJUnitPlatform()
     workingDir = project.layout.buildDirectory.asFile.get()
-    systemProperties["org.slf4j.simpleLogger.log.jetbrains.exodus.io.FileDataWriter"] = "off"
+}
+
+idea {
+    module {
+        isDownloadJavadoc = true
+        isDownloadSources = true
+    }
 }

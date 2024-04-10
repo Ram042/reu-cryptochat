@@ -2,12 +2,11 @@ package desktop
 
 import kotlinx.serialization.Serializable
 import lib.Message
-import lib.PublicKey
-import lib.User
+import lib.Signatures
 
 @Serializable
 @JvmInline
-value class Contact(val publicKey: PublicKey)
+value class Contact(val publicKey: Signatures.PublicKey)
 
 @Serializable
 data class Chat(

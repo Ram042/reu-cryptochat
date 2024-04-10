@@ -1,12 +1,20 @@
 package desktop
 
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import lib.Message
-import lib.User
-import kotlin.concurrent.thread
+import lib.Signatures
+import lib.Signatures.publicKey
 
+
+@Serializable
+data class User(
+    val privateKey: Signatures.PrivateKey = Signatures.PrivateKey(),
+    val publicKey: Signatures.PublicKey = privateKey.publicKey,
+)
 
 object Users {
     val userServices = MutableStateFlow(
@@ -19,11 +27,9 @@ object Users {
     val users = MutableStateFlow(userServices.value.keys.sortedBy(User::publicKey))
 
     init {
-        thread(name = "emit-users", isDaemon = true) {
-            runBlocking(Dispatchers.Default) {
-                userServices.collect {
-                    users.emit(it.keys.sortedBy(User::publicKey))
-                }
+        CoroutineScope(Dispatchers.Default).launch {
+            userServices.collect {
+                users.emit(it.keys.sortedBy(User::publicKey))
             }
         }
     }
@@ -35,10 +41,20 @@ object Users {
 
 class UserService(val user: User) {
     val chats: MutableStateFlow<List<ChatService>> = MutableStateFlow(listOf())
+
+    init {
+        CoroutineScope(Dispatchers.IO).launch {
+
+        }
+    }
 }
 
 class ChatService(val chat: Chat) {
     val messages: MutableStateFlow<List<Message>> = MutableStateFlow(listOf())
+
+    suspend fun fetchMessages(chat: ChatService) {
+        
+    }
 }
 
 

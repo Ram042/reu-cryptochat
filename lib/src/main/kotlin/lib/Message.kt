@@ -3,49 +3,43 @@ package lib
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import java.security.GeneralSecurityException
-import java.security.SecureRandom
 
 @Serializable
-sealed class Message(val action: Action)
+sealed class Message
+
+fun Message.toPlainText(): PlainText = PlainText(Json.encodeToString<Message>(this).encodeToByteArray())
 
 @Serializable
-data class GetMessageEnvelope(val time: Instant = Clock.System.now()) : Message(Action.ENVELOPE_GET)
+class SendSession(
+    val sessionPublicKey: KeyExchange.PublicKey,
+    val target: Signatures.PublicKey
+) : Message()
 
 @Serializable
-data class GetSessionsMessage(val time: Instant = Clock.System.now()) : Message(Action.SESSION_GET)
+data class GetSessions(
+    @Serializable
+    val time: Instant = Clock.System.now()
+) : Message()
 
 @Serializable
-data class RegisterUserMessage(val time: Instant = Clock.System.now()) : Message(Action.USER_REGISTER)
-
-private fun generateNonce(): ByteArray {
-    val nonce = ByteArray(12)
-    SecureRandom().nextBytes(nonce)
-    return nonce
-}
-
-@Serializable
-data class SendMessageEnvelope(
-    val sessionId: String,
-    @Serializable(with = ByteArrayStringSerializer::class)
-    val target: ByteArray,
-    val alg: String = "ChaCha20-Poly1305",
-    @Serializable(with = ByteArrayStringSerializer::class)
-    val nonce: ByteArray = generateNonce(),
-    @Serializable(with = ByteArrayStringSerializer::class)
-    val encryptedPayload: ByteArray
-) : Message(Action.ENVELOPE) {
+data class SendMessage(
+    val target: Signatures.PublicKey,
+    val nonce: Encrypt.Nonce,
+    val encryptedPayload: Encrypt.CypherText
+) : Message() {
 
     constructor(
-        sessionId: String,
-        target: ByteArray,
-        alg: String = "ChaCha20-Poly1305",
-        nonce: ByteArray = generateNonce(),
+        target: Signatures.PublicKey,
+        nonce: Encrypt.Nonce = Encrypt.Nonce(),
         message: EnvelopePayload,
-        key: ByteArray
+        key: Encrypt.Key
     ) : this(
-        sessionId, target, alg, nonce,
-        encryptMessage(padMessage(message), key, nonce)
+        target,
+        nonce,
+        Encrypt.encrypt(padMessage(message), key, nonce)
     )
 
     @Throws(GeneralSecurityException::class)
@@ -61,26 +55,19 @@ data class SendMessageEnvelope(
     )
 }
 
-fun padMessage(message: SendMessageEnvelope.EnvelopePayload): ByteArray {
+@Serializable
+data class GetMessages(val time: Instant = Clock.System.now()) : Message()
+
+
+fun padMessage(message: SendMessage.EnvelopePayload): PlainText {
     val messageBytes: ByteArray = message.toString().encodeToByteArray()
 
     //padding
     val newSize = (messageBytes.size / 64) * 64 + 64
     val messagePaddedBytes = ByteArray(newSize)
     System.arraycopy(messageBytes, 0, messagePaddedBytes, 0, messageBytes.size)
-    return messagePaddedBytes
+    return PlainText(messagePaddedBytes)
 }
 
-fun encryptMessage(message: ByteArray, key: ByteArray, nonce: ByteArray): ByteArray {
-    return Encrypt.encrypt(message, key, nonce)
-}
 
-@Serializable
-class SessionUpdateMessage(
-    val id: String,
-    @Serializable(with = ByteArrayStringSerializer::class)
-    val sessionPublicKey: ByteArray,
-    @Serializable(with = ByteArrayStringSerializer::class)
-    val target: ByteArray
-) : Message(Action.SESSION_UPDATE)
 

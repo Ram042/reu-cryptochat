@@ -18,13 +18,12 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import lib.Base16
-import lib.User
 import java.awt.image.BufferedImage
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import javax.imageio.ImageIO
 import kotlin.experimental.xor
+import lib.Base16
 
 
 fun main() = application {

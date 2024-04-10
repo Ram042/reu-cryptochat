@@ -3,46 +3,41 @@ package lib
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import lib.Signatures.publicKey
+import java.util.*
 
 @Serializable
-class SignedMessage<T : Message>(
-    @Serializable(with = ByteArrayStringSerializer::class)
-    val message: ByteArray,
-    @Serializable(with = ByteArrayStringSerializer::class)
-    val publicKey: ByteArray,
-    @Serializable(with = ByteArrayStringSerializer::class)
-    val signature: ByteArray,
-) {
+data class SignedMessage<T>(
+    val message: PlainText,
+    val publicKey: Signatures.PublicKey,
+    val signature: Signatures.Signature,
+) where T : Message {
 
-    constructor(message: T, privateKey: ByteArray) : this(
-        Json.encodeToString<Message>(message).encodeToByteArray(),
-        Signer.getPublicKeyForPrivate(privateKey),
-        Signer.sign(privateKey, Json.encodeToString<Message>(message).encodeToByteArray())
-    ) {
-        verify()
+    inline fun <reified M> getMessage(): M where M : T = Json.decodeFromString<M>(String(message.bytes))
+
+    init {
+        require(Signatures.verify(publicKey, signature, message)) { "bad signature" }
     }
 
-    fun verify(): Boolean {
-        return Signer.verify(publicKey, signature, message)
+    override fun equals(other: Any?): Boolean {
+        if (other !is SignedMessage<*>) return false
+        // signature не проверяем т.к. подпись валидна
+        return message == other.message && publicKey == other.publicKey
     }
 
-    fun verify(action: Action): Boolean {
-        return this.action == action && verify()
+    override fun hashCode(): Int {
+        // signature не проверяем т.к. подпись валидна
+        return Objects.hash(publicKey, message)
     }
 
-    val action: Action
-        get() = Json.decodeFromString<Message>(String(message)).action
-
-    val decodedMessage: T = run {
-        val json = Json {
-            ignoreUnknownKeys = true
+    companion object {
+        inline fun <reified T : Message> sign(message: T, privateKey: Signatures.PrivateKey): SignedMessage<T> {
+            val plainText = PlainText(Json.encodeToString<T>(message).encodeToByteArray())
+            return SignedMessage<T>(
+                plainText,
+                privateKey.publicKey,
+                Signatures.sign(privateKey, plainText)
+            )
         }
-        when (Json.decodeFromString<Message>(String(message)).action) {
-            Action.USER_REGISTER -> json.decodeFromString<RegisterUserMessage>(String(message))
-            Action.SESSION_UPDATE -> json.decodeFromString<SessionUpdateMessage>(String(message))
-            Action.SESSION_GET -> json.decodeFromString<GetSessionsMessage>(String(message))
-            Action.ENVELOPE -> json.decodeFromString<SendMessageEnvelope>(String(message))
-            Action.ENVELOPE_GET -> json.decodeFromString<GetMessageEnvelope>(String(message))
-        } as T
     }
 }
