@@ -3,13 +3,10 @@ package server
 import io.ktor.client.call.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
-import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.routing.*
 import io.ktor.server.testing.*
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import lib.*
 import lib.KeyExchange.publicKey
 import lib.Signatures.publicKey
@@ -18,7 +15,7 @@ import kotlin.test.assertEquals
 
 class ApplicationTest {
     @Test
-    fun test() = testApplication {
+    fun testSessions() = testApplication {
         application {
             module()
         }
@@ -57,21 +54,66 @@ class ApplicationTest {
         client.get("/session") {
             contentType(ContentType.Application.Json)
             setBody(getSessions)
-            println("Get plaintext ${String(getSessions.message.bytes)}")
-            println("Get Body ${Json.encodeToString(getSessions)}")
-            println("Get Msg ${Json.encodeToString(String(getSessions.message.bytes))}")
         }.apply {
             assertEquals(HttpStatusCode.OK, status)
             val actual = body<Set<SignedMessage<SendSession>>>()
-            println("Real body ${bodyAsText()}")
             val expected = setOf(send)
+            assertEquals(expected, actual)
+        }
+    }
 
-            println("Expected ${Json.encodeToString(expected)}")
-            println("Expected msg ${String(expected.first().message.bytes)}")
+    @Test
+    fun testMessages() = testApplication {
+        application {
+            module()
+        }
 
-            println("Actual ${Json.encodeToString(actual)}")
-            println("Actual msg ${String(actual.first().message.bytes)}")
+        application {
+            routing {
+                println(getAllRoutes())
+            }
+        }
 
+        val msg = "Hello World!"
+
+        val aPrivateKey = Signatures.PrivateKey()
+        val aSessionKey = KeyExchange.PrivateKey()
+        val bPrivateKey = Signatures.PrivateKey()
+        val bSessionKey = KeyExchange.PrivateKey()
+
+        val client = createClient {
+            install(ContentNegotiation) {
+                json()
+            }
+        }
+
+        val send = SignedMessage.sign(
+            SendMessage(
+                target = bPrivateKey.publicKey,
+                message = SendMessage.EnvelopePayload(message = msg),
+                key = KeyExchange.generateSharedKey(aSessionKey, bSessionKey.publicKey).toKey()
+            ),
+            aPrivateKey
+        )
+
+        client.post("/message") {
+            contentType(ContentType.Application.Json)
+            setBody(send)
+        }.apply {
+            assertEquals(HttpStatusCode.OK, status)
+        }
+
+        val getMessages = SignedMessage.sign(
+            GetMessages(),
+            bPrivateKey
+        )
+        client.get("/message") {
+            contentType(ContentType.Application.Json)
+            setBody(getMessages)
+        }.apply {
+            assertEquals(HttpStatusCode.OK, status)
+            val actual = body<Set<SignedMessage<SendMessage>>>()
+            val expected = setOf(send)
             assertEquals(expected, actual)
         }
     }

@@ -29,3 +29,5 @@ data class PlainText(
 
     override fun hashCode(): Int = bytes.contentHashCode()
 }
+
+fun KeyExchange.SharedKey.toKey(): Encrypt.Key = Encrypt.Key(bytes)

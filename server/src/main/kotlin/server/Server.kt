@@ -44,10 +44,8 @@ fun Routing.sessions() {
         try {
             val msg = call.receive<SignedSendSession>()
             sessions.compute(msg.getMessage<SendSession>().target) { _, set -> (set ?: setOf()) + msg }
-            println("put sessions $sessions")
             call.respond(HttpStatusCode.OK)
         } catch (e: Exception) {
-            println("POST $e \n ${e.stackTraceToString()}")
             call.respond(HttpStatusCode.BadRequest)
         }
     }
@@ -57,17 +55,11 @@ fun Routing.sessions() {
 
             val time = msg.getMessage<GetSessions>().time
             require(time.toJavaInstant().within(Duration.ofMinutes(1)))
-            println("get sessions $sessions")
-            println("getting ${msg.publicKey}")
 
             val found = sessions.remove(msg.publicKey)
-            println("found $found")
-
-
 
             call.respond(found ?: setOf())
         } catch (e: Exception) {
-            println("GET $e \n ${e.stackTraceToString()}")
             call.respond(HttpStatusCode.BadRequest)
         }
     }
@@ -82,10 +74,10 @@ fun Routing.messages() {
         try {
             val m = call.receive<SignedSendMessage>()
             messages.compute(m.getMessage<SendMessage>().target) { _, set -> (set ?: setOf()) + m }
+            println("Received {$messages}")
             call.respond(HttpStatusCode.OK)
         } catch (e: Exception) {
             call.respond(HttpStatusCode.BadRequest)
-
         }
     }
     get("/message") {
