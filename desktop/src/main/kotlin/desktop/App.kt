@@ -1,12 +1,18 @@
 package desktop
 
-import androidx.compose.foundation.*
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
@@ -14,16 +20,19 @@ import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.res.loadImageBitmap
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogWindow
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import lib.Base16
+import lib.Message
 import java.awt.image.BufferedImage
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import javax.imageio.ImageIO
 import kotlin.experimental.xor
-import lib.Base16
+import kotlin.random.Random
 
 
 fun main() = application {
@@ -76,23 +85,17 @@ fun ChatScreen(
     onUserChange: (User) -> Unit,
     onCreateUser: (User) -> Unit
 ) {
-    var chats by remember { mutableStateOf(listOf<Chat>()) }
+    val chats by user.chats.collectAsState()
+    var showDialog by remember { mutableStateOf(false) }
 
-    Row(Modifier.fillMaxSize()) {
-        //chats
-        Column(
-            Modifier
-                .fillMaxHeight()
-                .width(300.dp)
-                .verticalScroll(rememberScrollState())
-                .background(Color.Magenta.copy(alpha = 0.5f))
-                .height(IntrinsicSize.Max)
-        ) {
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .background(Color.Blue.copy(alpha = 0.5f))
-            ) {
+    Row(
+        modifier = Modifier.fillMaxSize(),
+    ) {
+        Scaffold(
+            floatingActionButtonPosition = FabPosition.Start,
+            modifier = Modifier
+                .fillMaxWidth(0.3f),
+            topBar = {
                 ActiveAccount(
                     users = users,
                     activeUser = user,
@@ -103,34 +106,99 @@ fun ChatScreen(
                         onCreateUser(it)
                     }
                 )
+            },
+            floatingActionButton = {
+                FloatingActionButton(
+                    onClick = { showDialog = true },
+                    modifier = Modifier
+                ) {
+                    Icon(Icons.Rounded.Add, "New chat")
+                }
             }
-            ChatList(chats)
+        ) { pad ->
+            ChatList(pad, chats)
+        }
+        Scaffold(
+            modifier = Modifier
+                .fillMaxHeight()
+                .background(Color.Blue.copy(alpha = 0.8f)),
+            topBar = {
+                Text("This is chat")
+            },
+            bottomBar = {
+                Text("Send msg here")
+            }
+        ) { pad ->
+            MessageList(pad, listOf())
+        }
+    }
 
-        }
-        //single chat
-        Column(Modifier.fillMaxSize().background(Color.Green.copy(alpha = 0.5f))) {
-            Button(onClick = { }) {
-                Text("Button")
-            }
-        }
+    NewChat(showDialog, { showDialog = false }) {
+
     }
 }
 
 @Composable
 fun ChatList(
+    pad: PaddingValues,
     chats: List<Chat>
 ) {
-    Column(
-        Modifier
+    LazyColumn(
+        modifier = Modifier
+            .padding(pad)
             .fillMaxSize()
-            .background(Color.Yellow.copy(alpha = 0.5f))
     ) {
-        Button(onClick = { }) {
-            Text("Chats")
+        items((1 until 100).toList()) {
+            Text(text = it.toString())
+        }
+        items(chats) {
+            Text(text = it.toString())
         }
     }
 }
 
+@Composable
+fun MessageList(
+    pad: PaddingValues,
+    messages: List<Message>
+) {
+    val state = rememberLazyListState(Int.MAX_VALUE)
+    LazyColumn(
+        modifier = Modifier
+            .padding(pad)
+            .fillMaxSize(),
+        state = state
+    ) {
+        items((1 until 1000).toList()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+            ) {
+                val rnd by remember { mutableStateOf(Random.nextBoolean()) }
+                val align = if (rnd) Alignment.TopStart else Alignment.TopEnd
+                Text(
+                    modifier = Modifier.align(align),
+                    text = it.toString()
+                )
+            }
+        }
+
+    }
+}
+
+@Composable
+fun NewChat(
+    showDialog: Boolean,
+    onDismiss: () -> Unit,
+    onNewChat: (Contact) -> Unit
+) {
+    DialogWindow(
+        visible = showDialog,
+        onCloseRequest = onDismiss
+    ) {
+
+    }
+}
 
 @Composable
 fun ActiveAccount(

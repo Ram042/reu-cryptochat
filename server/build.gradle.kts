@@ -24,7 +24,7 @@ dependencies {
     implementation("io.ktor:ktor-server-netty-jvm")
     testImplementation("io.ktor:ktor-client-content-negotiation:2.1.1")
     testImplementation("io.ktor:ktor-server-tests-jvm")
-    testImplementation("org.slf4j:slf4j-simple:${rootProject.extra["slf4jVersion"]}")
+    implementation("org.slf4j:slf4j-simple:${rootProject.extra["slf4jVersion"]}")
 }
 
 application {
