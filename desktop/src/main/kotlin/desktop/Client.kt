@@ -13,79 +13,90 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.time.delay
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
-import lib.GetSessions
-import lib.SendSession
-import lib.Signatures
+import lib.*
 import lib.Signatures.publicKey
-import lib.SignedMessage
 import java.time.Duration
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.random.Random
 
 @Serializable
 data class User(
     val privateKey: Signatures.PrivateKey = Signatures.PrivateKey(),
     val publicKey: Signatures.PublicKey = privateKey.publicKey,
-) {
-    @Transient
-    private val service = UserService(this)
-
-    @Transient
-    val chats = service.chats
-}
+)
 
 @Serializable
 data class Chat(
     val from: User,
     val to: Contact
-) {
-    @Transient
-    private val service = ChatService(this)
+)
 
-    @Transient
-    val messages = service.messages
+enum class Direction { RECEIVED, SENT }
+
+data class ChatMessage(val direction: Direction, val text: String);
+
+object Users {
+    val usersMap = ConcurrentHashMap(
+        User().let { user ->
+            mapOf(user to UserService(user))
+        }
+    )
+
+    private val mutableUsersFlow = MutableStateFlow(usersMap.keys().toList())
+    val users = mutableUsersFlow
+
+    fun newUser(): User = User().also { user ->
+        usersMap += user to UserService(user)
+        mutableUsersFlow.value += user
+    }
+
+    fun userChats(user: User) = usersMap[user]?.chatsStateFlow
+
+    fun chatMessages(chat: Chat) = usersMap[chat.from]?.messagesForChat(chat)
 }
 
 @Serializable
 @JvmInline
 value class Contact(val publicKey: Signatures.PublicKey)
 
-object Users {
-
-    private val usersFlow = MutableStateFlow(listOf(User()))
-
-    val users = usersFlow.asStateFlow()
-
-    fun newUser(user: User = User()) {
-        usersFlow.value += user
+const val generateMockMessages = true
+val client = HttpClient {
+    install(ContentNegotiation) {
+        json()
     }
 }
 
-const val generateMockMessages = true
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class UserService(val user: User) {
-    private val chatsFlow: MutableStateFlow<List<Chat>> = MutableStateFlow(listOf())
+    private val unmappedMessages = MutableSharedFlow<SignedMessage<SendMessage>>()
 
-    val chats = chatsFlow.asStateFlow()
+    private val chatsMap = ConcurrentHashMap<Contact, MutableStateFlow<List<ChatMessage>>>()
 
-    val client = HttpClient {
-        install(ContentNegotiation) {
-            json()
-        }
+    private val mutableChatsStateFlow: MutableStateFlow<List<Chat>> = MutableStateFlow(listOf())
+    val chatsStateFlow: StateFlow<List<Chat>> = mutableChatsStateFlow.asStateFlow()
+
+    fun messagesForChat(chat: Chat) = chatsMap[chat.to]?.asStateFlow()
+
+    fun addChat(chat: Chat) {
+        require(!chatsMap.containsKey(chat.to)) { "chat already exists" }
+        chatsMap[chat.to] = MutableStateFlow(listOf())
+        mutableChatsStateFlow.value += chat
     }
 
     init {
+        // получаем чаты
         CoroutineScope(Dispatchers.IO).launch {
             tickerFlow(Duration.ofSeconds(1))
                 .map {
-                    val getSessions = SignedMessage.sign(
-                        GetSessions(),
-                        user.privateKey
-                    )
                     client.get("http://localhost:8080/session") {
                         contentType(ContentType.Application.Json)
-                        setBody(getSessions)
+                        setBody(
+                            SignedMessage.sign<GetSessions>(
+                                GetSessions(),
+                                user.privateKey
+                            )
+                        )
                     }.body<Set<SignedMessage<SendSession>>>()
                 }
                 .flatMapConcat { messages ->
@@ -94,50 +105,75 @@ class UserService(val user: User) {
                     }
                 }
                 .onEach {
-                    chatsFlow.value += Chat(user, Contact(it.publicKey))
+                    addChat(Chat(user, Contact(it.publicKey)))
                 }
                 .collect()
         }
-        if (generateMockMessages)
+        // получаем сообщения
+        CoroutineScope(Dispatchers.IO).launch {
+            tickerFlow(Duration.ofSeconds(5))
+                .map {
+                    client.get("http://localhost:8080/message") {
+                        contentType(ContentType.Application.Json)
+                        setBody(
+                            SignedMessage.sign<GetMessages>(
+                                GetMessages(),
+                                user.privateKey
+                            )
+                        )
+                    }
+                }
+                .map { it.body<Set<SignedMessage<SendMessage>>>() }
+                .flatMapConcat { messages ->
+                    flow {
+                        messages.forEach { message -> emit(message) }
+                    }
+                }
+                .onEach { m ->
+                    val chat = chatsMap[Contact(m.publicKey)]
+                    if (chat == null) {
+                        unmappedMessages.emit(m)
+                    } else {
+                        chat.value += ChatMessage(
+                            Direction.RECEIVED,
+                            m.getMessage<SendMessage>().encryptedPayload.toString()
+                        )
+                    }
+                }
+                .collect()
+        }
+        if (generateMockMessages) {
+            // создаем чаты
             CoroutineScope(Dispatchers.IO).launch {
-                tickerFlow(Duration.ofSeconds(5))
+                tickerFlow(Duration.ofMillis(1000))
                     .onEach {
-                        chatsFlow.value += Chat(user, Contact(Signatures.PrivateKey().publicKey))
+                        addChat(Chat(user, Contact(Signatures.PrivateKey().publicKey)))
                     }
                     .collect()
             }
-    }
-}
-
-class ChatService(val chat: Chat) {
-    enum class Direction { RECEIVED, SENT }
-
-    data class ChatMessage(val direction: Direction, val text: String);
-
-    private val messagesFlow: MutableStateFlow<List<ChatMessage>> = MutableStateFlow(listOf())
-
-    val messages = messagesFlow.asStateFlow()
-
-    init {
-        CoroutineScope(Dispatchers.IO).launch {
-            tickerFlow(Duration.ofSeconds(1))
-                .onEach { }
-                .collect()
-        }
-
-        if (generateMockMessages) CoroutineScope(Dispatchers.IO).launch {
-            tickerFlow(Duration.ofSeconds(1))
-                .onEach {
-                    val d = if (Random.nextBoolean()) Direction.RECEIVED else Direction.SENT
-                    messagesFlow.value += ChatMessage(d, d.toString())
-                }
-                .collect()
+            // создаем сообщения
+            CoroutineScope(Dispatchers.IO).launch {
+                tickerFlow(Duration.ofMillis(500))
+                    .map {
+                        val v = chatsMap.values
+                        v
+                    }
+                    .flatMapConcat { v ->
+                        flow {
+                            v.forEach { emit(it) }
+                        }
+                    }
+                    .onEach {
+                        val d = if (Random.nextBoolean()) Direction.RECEIVED else Direction.SENT
+                        it.value += ChatMessage(d, d.toString())
+                    }
+                    .collect()
+            }
         }
     }
 }
 
-
-fun tickerFlow(period: Duration, initialDelay: Duration = Duration.ZERO) = flow {
+suspend fun tickerFlow(period: Duration, initialDelay: Duration = Duration.ZERO) = flow {
     delay(initialDelay)
     while (true) {
         emit(Unit)

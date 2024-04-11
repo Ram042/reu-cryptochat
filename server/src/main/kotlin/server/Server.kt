@@ -46,7 +46,7 @@ fun Routing.sessions() {
             sessions.compute(msg.getMessage<SendSession>().target) { _, set -> (set ?: setOf()) + msg }
             call.respond(HttpStatusCode.OK)
         } catch (e: Exception) {
-            call.respond(HttpStatusCode.BadRequest)
+            call.respond(HttpStatusCode.BadRequest, e)
         }
     }
     get("/session") {
@@ -60,7 +60,7 @@ fun Routing.sessions() {
 
             call.respond(found ?: setOf())
         } catch (e: Exception) {
-            call.respond(HttpStatusCode.BadRequest)
+            call.respond(HttpStatusCode.BadRequest,e)
         }
     }
 }

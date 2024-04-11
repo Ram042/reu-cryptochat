@@ -81,10 +81,10 @@ fun ChatScreen(
     onUserChange: (User) -> Unit,
     onCreateUser: (User) -> Unit
 ) {
-    val chats by user.chats.collectAsState()
+    val chats by Users.userChats(user)!!.collectAsState()
     var showDialog by remember { mutableStateOf(false) }
     var chat: Chat? by rememberSaveable { mutableStateOf(null) }
-    val messages = chat?.messages?.collectAsState()
+    val messages = chat?.let { Users.chatMessages(it)?.collectAsState() }
 
     Row(
         modifier = Modifier.fillMaxSize(),
@@ -164,7 +164,7 @@ fun ChatList(
 @Composable
 fun MessageList(
     pad: PaddingValues,
-    messages: List<ChatService.ChatMessage>
+    messages: List<ChatMessage>
 ) {
     val state = rememberLazyListState(Int.MAX_VALUE)
     LazyColumn(
@@ -175,8 +175,8 @@ fun MessageList(
     ) {
         items(messages) { message ->
             val align = when (message.direction) {
-                desktop.ChatService.Direction.RECEIVED -> Alignment.TopStart
-                desktop.ChatService.Direction.SENT -> Alignment.TopEnd
+                Direction.RECEIVED -> Alignment.TopStart
+                Direction.SENT -> Alignment.TopEnd
             }
             Box(
                 modifier = Modifier
