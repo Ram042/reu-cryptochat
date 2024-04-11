@@ -10,6 +10,7 @@ object Signatures {
 
     @Serializable
     data class PublicKey(
+        @Serializable(with = ByteArrayStringSerializer::class)
         override val bytes: ByteArray
     ) : HasBytes<PublicKey>, Comparable<PublicKey> {
         override fun compareTo(other: PublicKey): Int {

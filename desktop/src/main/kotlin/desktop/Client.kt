@@ -14,9 +14,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.time.delay
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
-import lib.*
+import lib.GetSessions
+import lib.SendSession
+import lib.Signatures
 import lib.Signatures.publicKey
+import lib.SignedMessage
 import java.time.Duration
+import kotlin.random.Random
 
 @Serializable
 data class User(
@@ -39,7 +43,7 @@ data class Chat(
     private val service = ChatService(this)
 
     @Transient
-    val chats = service.messages
+    val messages = service.messages
 }
 
 @Serializable
@@ -56,6 +60,8 @@ object Users {
         usersFlow.value += user
     }
 }
+
+const val generateMockMessages = true
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class UserService(val user: User) {
@@ -92,20 +98,41 @@ class UserService(val user: User) {
                 }
                 .collect()
         }
+        if (generateMockMessages)
+            CoroutineScope(Dispatchers.IO).launch {
+                tickerFlow(Duration.ofSeconds(5))
+                    .onEach {
+                        chatsFlow.value += Chat(user, Contact(Signatures.PrivateKey().publicKey))
+                    }
+                    .collect()
+            }
     }
 }
 
 class ChatService(val chat: Chat) {
-    private val messagesFlow: MutableStateFlow<List<Message>> = MutableStateFlow(listOf())
+    enum class Direction { RECEIVED, SENT }
+
+    data class ChatMessage(val direction: Direction, val text: String);
+
+    private val messagesFlow: MutableStateFlow<List<ChatMessage>> = MutableStateFlow(listOf())
 
     val messages = messagesFlow.asStateFlow()
 
-    suspend fun fetchMessages(chat: ChatService) {
-        tickerFlow(Duration.ofSeconds(1))
-            .onEach {
-                println("timer")
-            }
-            .collect()
+    init {
+        CoroutineScope(Dispatchers.IO).launch {
+            tickerFlow(Duration.ofSeconds(1))
+                .onEach { }
+                .collect()
+        }
+
+        if (generateMockMessages) CoroutineScope(Dispatchers.IO).launch {
+            tickerFlow(Duration.ofSeconds(1))
+                .onEach {
+                    val d = if (Random.nextBoolean()) Direction.RECEIVED else Direction.SENT
+                    messagesFlow.value += ChatMessage(d, d.toString())
+                }
+                .collect()
+        }
     }
 }
 

@@ -1,8 +1,6 @@
 package desktop
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -26,13 +24,11 @@ import androidx.compose.ui.window.application
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import lib.Base16
-import lib.Message
 import java.awt.image.BufferedImage
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import javax.imageio.ImageIO
 import kotlin.experimental.xor
-import kotlin.random.Random
 
 
 fun main() = application {
@@ -87,6 +83,8 @@ fun ChatScreen(
 ) {
     val chats by user.chats.collectAsState()
     var showDialog by remember { mutableStateOf(false) }
+    var chat: Chat? by rememberSaveable { mutableStateOf(null) }
+    val messages = chat?.messages?.collectAsState()
 
     Row(
         modifier = Modifier.fillMaxSize(),
@@ -116,7 +114,7 @@ fun ChatScreen(
                 }
             }
         ) { pad ->
-            ChatList(pad, chats)
+            ChatList(pad, chats) { chat = it }
         }
         Scaffold(
             modifier = Modifier
@@ -129,7 +127,7 @@ fun ChatScreen(
                 Text("Send msg here")
             }
         ) { pad ->
-            MessageList(pad, listOf())
+            MessageList(pad, messages?.value ?: listOf())
         }
     }
 
@@ -138,21 +136,27 @@ fun ChatScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ChatList(
     pad: PaddingValues,
-    chats: List<Chat>
+    chats: List<Chat>,
+    onChatSelect: (Chat) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier
             .padding(pad)
             .fillMaxSize()
     ) {
-        items((1 until 100).toList()) {
-            Text(text = it.toString())
-        }
-        items(chats) {
-            Text(text = it.toString())
+        items(chats) { chat ->
+            Box(
+                modifier = Modifier
+                    .onClick {
+                        onChatSelect(chat)
+                    }
+            ) {
+                Text(text = Json.encodeToString(chat.to.publicKey))
+            }
         }
     }
 }
@@ -160,7 +164,7 @@ fun ChatList(
 @Composable
 fun MessageList(
     pad: PaddingValues,
-    messages: List<Message>
+    messages: List<ChatService.ChatMessage>
 ) {
     val state = rememberLazyListState(Int.MAX_VALUE)
     LazyColumn(
@@ -169,16 +173,18 @@ fun MessageList(
             .fillMaxSize(),
         state = state
     ) {
-        items((1 until 1000).toList()) {
+        items(messages) { message ->
+            val align = when (message.direction) {
+                desktop.ChatService.Direction.RECEIVED -> Alignment.TopStart
+                desktop.ChatService.Direction.SENT -> Alignment.TopEnd
+            }
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
             ) {
-                val rnd by remember { mutableStateOf(Random.nextBoolean()) }
-                val align = if (rnd) Alignment.TopStart else Alignment.TopEnd
                 Text(
                     modifier = Modifier.align(align),
-                    text = it.toString()
+                    text = message.text
                 )
             }
         }
