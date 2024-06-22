@@ -56,7 +56,7 @@ fun main() = application {
 @Composable
 fun App(
     users: List<User>,
-    onCreateUser: (User) -> Unit
+    onCreateUser: () -> User
 ) {
     require(users.isNotEmpty()) { "no users exist" }
     var activeUser by rememberSaveable { mutableStateOf(users.first()) }
@@ -67,9 +67,8 @@ fun App(
         onUserChange = { selectedUser ->
             activeUser = selectedUser
         },
-        onCreateUser = { newUser ->
-            onCreateUser(newUser)
-            activeUser = newUser
+        onCreateUser = {
+            activeUser = onCreateUser()
         }
     )
 }
@@ -82,9 +81,9 @@ fun ChatScreen(
     users: List<User>,
     user: User,
     onUserChange: (User) -> Unit,
-    onCreateUser: (User) -> Unit
+    onCreateUser: () -> Unit
 ) {
-    val chats by Users.userChats(user)!!.collectAsState()
+    val chats by Users.userChats(user).collectAsState()
     var showDialog by remember { mutableStateOf(false) }
     var chat: Chat? by rememberSaveable { mutableStateOf(null) }
     val messages = chat?.let { Users.chatMessages(it)?.collectAsState() }
@@ -245,7 +244,7 @@ fun ActiveAccount(
     users: List<User>,
     activeUser: User,
     updateUser: (User) -> Unit,
-    onCreateUser: (User) -> Unit
+    onCreateUser: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
     Column {
@@ -288,7 +287,7 @@ fun AccountSelect(
     users: List<User>,
     activeUser: User,
     updateUser: (User) -> Unit,
-    onCreateUser: (User) -> Unit,
+    onCreateUser: () -> Unit,
     onClose: () -> Unit
 ) {
     DropdownMenu(
@@ -320,7 +319,7 @@ fun AccountSelect(
                 },
                 onClick = {
                     onClose()
-                    onCreateUser(User())
+                    onCreateUser()
                 }
             )
         }
