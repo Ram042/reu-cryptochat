@@ -6,6 +6,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.Send
+import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -16,7 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.res.loadImageBitmap
-import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogWindow
 import androidx.compose.ui.window.Window
@@ -24,6 +26,7 @@ import androidx.compose.ui.window.application
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import lib.Base16
+import org.jetbrains.skiko.ClipboardManager
 import java.awt.image.BufferedImage
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
@@ -121,10 +124,34 @@ fun ChatScreen(
                 .fillMaxHeight()
                 .background(Color.Blue.copy(alpha = 0.8f)),
             topBar = {
-                Text("This is chat")
+                chat?.let {
+                    Text(
+                        text = "Сообщения с пользователем ${it.to.nameShort}",
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             },
             bottomBar = {
-                Text("Send msg here")
+                chat?.let {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                    ) {
+                        OutlinedTextField(
+                            value = "Новое сообщение",
+                            onValueChange = {},
+                            modifier = Modifier
+                                .weight(1.0f)
+                        )
+                        Button(
+                            modifier = Modifier,
+                            content = { Icon(Icons.AutoMirrored.Rounded.Send, "New chat") },
+                            onClick = {}
+                        )
+                    }
+                }
+
             }
         ) { pad ->
             MessageList(pad, messages?.value ?: listOf())
@@ -143,22 +170,28 @@ fun ChatList(
     chats: List<Chat>,
     onChatSelect: (Chat) -> Unit
 ) {
-    LazyColumn(
+    Column(
         modifier = Modifier
             .padding(pad)
-            .fillMaxSize()
     ) {
-        items(chats) { chat ->
-            Box(
-                modifier = Modifier
-                    .onClick {
-                        onChatSelect(chat)
-                    }
-            ) {
-                Text(text = Json.encodeToString(chat.to.publicKey))
+        Text(text = "Список чатов", fontWeight = FontWeight.Bold)
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+        ) {
+            items(chats) { chat ->
+                Box(
+                    modifier = Modifier
+                        .onClick {
+                            onChatSelect(chat)
+                        }
+                ) {
+                    Text(text = chat.to.nameShort)
+                }
             }
         }
     }
+
 }
 
 @Composable
@@ -206,6 +239,7 @@ fun NewChat(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ActiveAccount(
     users: List<User>,
@@ -214,29 +248,38 @@ fun ActiveAccount(
     onCreateUser: (User) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    Row(
-        modifier = Modifier
-            .clickable {
-                expanded = !expanded
-            }
-            .fillMaxWidth()
-    ) {
-        UserIcon(activeUser)
-        Text(
-            text = AnnotatedString("0x" + Base16.encode(activeUser.publicKey.bytes).substring(0, 8)),
+    Column {
+        Text(text = "Текущий пользователь", fontWeight = FontWeight.Bold)
+        Row(
             modifier = Modifier
-        )
-        AccountSelect(
-            expanded = expanded,
-            users = users,
-            activeUser = activeUser,
-            updateUser = updateUser,
-            onCreateUser = onCreateUser,
-            onClose = {
-                expanded = false
-            }
-        )
+                .clickable {
+                    expanded = !expanded
+                }
+                .fillMaxWidth()
+        ) {
+            UserIcon(activeUser)
+            Text(
+                text = activeUser.nameShort,
+                modifier = Modifier
+            )
+            Icon(
+                modifier = Modifier.onClick { ClipboardManager().setText(activeUser.nameFull) },
+                imageVector = Icons.Default.Done,
+                contentDescription = "Copy"
+            )
+            AccountSelect(
+                expanded = expanded,
+                users = users,
+                activeUser = activeUser,
+                updateUser = updateUser,
+                onCreateUser = onCreateUser,
+                onClose = {
+                    expanded = false
+                }
+            )
+        }
     }
+
 }
 
 @Composable

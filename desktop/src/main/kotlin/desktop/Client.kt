@@ -22,8 +22,18 @@ import kotlin.random.Random
 @Serializable
 data class User(
     val privateKey: Signatures.PrivateKey = Signatures.PrivateKey(),
-    val publicKey: Signatures.PublicKey = privateKey.publicKey,
-)
+    override val publicKey: Signatures.PublicKey = privateKey.publicKey,
+) : HasPublicKey
+
+interface HasPublicKey {
+    val publicKey: Signatures.PublicKey
+}
+
+val HasPublicKey.nameShort: String
+    get() = "0x" + Base16.encode(publicKey.bytes).substring(0, 8)
+
+val HasPublicKey.nameFull: String
+    get() = "0x" + Base16.encode(publicKey.bytes)
 
 @Serializable
 data class Chat(
@@ -57,7 +67,7 @@ object Users {
 
 @Serializable
 @JvmInline
-value class Contact(val publicKey: Signatures.PublicKey)
+value class Contact(override val publicKey: Signatures.PublicKey) : HasPublicKey
 
 const val generateMockMessages = true
 val client = HttpClient {
