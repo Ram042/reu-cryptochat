@@ -5,6 +5,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.FloatingActionButton
+import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.filled.Done
@@ -14,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.painter.BitmapPainter
@@ -103,7 +107,7 @@ fun ChatScreen(
                         onUserChange(it)
                     },
                     onCreateUser = {
-                        onCreateUser(it)
+                        onCreateUser()
                     }
                 )
             },
@@ -214,11 +218,20 @@ fun MessageList(
                 modifier = Modifier
                     .fillMaxWidth()
             ) {
-                Text(
-                    modifier = Modifier.align(align),
-                    text = message.text
-                )
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Color.Blue.copy(alpha = 0.3f))
+                        .padding(5.dp)
+                        .fillMaxWidth(0.7f)
+                        .align(align)
+                ) {
+                    Text(
+                        text = message.text
+                    )
+                }
             }
+
         }
 
     }
