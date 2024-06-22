@@ -17,7 +17,6 @@ import lib.*
 import lib.Signatures.publicKey
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.random.Random
 
 @Serializable
 data class User(
@@ -46,7 +45,7 @@ enum class Direction { RECEIVED, SENT }
 data class ChatMessage(val direction: Direction, val text: String);
 
 object Users {
-    val usersMap = ConcurrentHashMap(
+    private val usersMap = ConcurrentHashMap(
         User().let { user ->
             mapOf(user to UserService(user))
         }
@@ -60,7 +59,7 @@ object Users {
         mutableUsersFlow.value += user
     }
 
-    fun userChats(user: User) = usersMap[user]?.chatsStateFlow
+    fun userChats(user: User) = usersMap[user]!!.chatsStateFlow
 
     fun chatMessages(chat: Chat) = usersMap[chat.from]?.messagesForChat(chat)
 }
@@ -76,6 +75,21 @@ val client = HttpClient {
     }
 }
 
+
+val dialog = listOf(
+    "Добрый день, Сергей. Можем обсудить сроки по нашему конфиденциальному проекту? Нужно уточнить некоторые моменты.",
+    "Здравствуйте, Ирина. Конечно, могу выделить время сейчас. Какие у нас приоритеты?",
+    "В первую очередь, хочу напомнить о важности соблюдения конфиденциальности. Этот проект имеет высокий приоритет, и нам нужно уложиться в сроки. Как идёт работа по первой фазе?",
+    "Понимаю, держим всё под контролем. Первая фаза почти завершена, осталось несколько технических моментов, которые мы планируем закрыть к середине следующей недели.",
+    "Отлично. Помните, что нам нужно завершить весь проект к 15 июля. Сможем ли мы придерживаться этого графика?",
+    "Да, мы это понимаем. Если не возникнет непредвиденных задержек, всё будет готово к 15 июля. На всякий случай закладываем пару дней на тестирование и проверку.",
+    "Прекрасно. Оперативно сообщайте о любых рисках или задержках. Согласуйте с командой, чтобы все были в курсе сроков и приоритетов.",
+    "Обязательно. Команда в курсе. Провожу ежедневные проверки статуса выполнения задач.",
+    "Спасибо, Сергей. Поддерживайте нас в курсе. Нам важно, чтобы всё прошло гладко и вовремя.",
+    "Без проблем, Ирина. Буду держать вас в курсе всех этапов. Если возникнут вопросы, сразу свяжусь с вами.",
+    "Отлично. Надеюсь, что всё пройдет по плану. Спасибо за вашу работу!",
+    "Спасибо за доверие. Сделаем всё возможное!",
+)
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class UserService(val user: User) {
@@ -155,7 +169,7 @@ class UserService(val user: User) {
         if (generateMockMessages) {
             // создаем чаты
             CoroutineScope(Dispatchers.IO).launch {
-                tickerFlow(Duration.ofMillis(1000))
+                tickerFlow(Duration.ofSeconds(20))
                     .onEach {
                         addChat(Chat(user, Contact(Signatures.PrivateKey().publicKey)))
                     }
@@ -163,19 +177,21 @@ class UserService(val user: User) {
             }
             // создаем сообщения
             CoroutineScope(Dispatchers.IO).launch {
-                tickerFlow(Duration.ofMillis(500))
-                    .map {
-                        val v = chatsMap.values
-                        v
-                    }
-                    .flatMapConcat { v ->
+                tickerFlow(Duration.ofSeconds(1))
+                    .flatMapConcat {
                         flow {
-                            v.forEach { emit(it) }
+                            chatsMap.values.forEach { chat -> emit(chat) }
                         }
+
                     }
-                    .onEach {
-                        val d = if (Random.nextBoolean()) Direction.RECEIVED else Direction.SENT
-                        it.value += ChatMessage(d, d.toString())
+                    .onEach { flow ->
+                        val messages = flow.value
+                        val newMessage = dialog.getOrNull(messages.size)
+                        val direction = Direction.entries[messages.size % 2]
+                        println(direction)
+                        newMessage?.let {
+                            flow.value += ChatMessage(direction, newMessage)
+                        }
                     }
                     .collect()
             }
