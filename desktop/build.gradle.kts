@@ -14,16 +14,16 @@ dependencies {
     implementation("org.jetbrains:annotations:${rootProject.extra["annotationsVersion"]}")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:${rootProject.extra["jsonVersion"]}")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.5.0")
-    runtimeOnly("androidx.annotation:annotation:1.7.1")
+    runtimeOnly("androidx.annotation:annotation:1.8.0")
 
     implementation("org.slf4j:slf4j-simple:${rootProject.extra["slf4jVersion"]}")
     testImplementation(kotlin("test"))
     testImplementation("org.assertj:assertj-core:${rootProject.extra["assertjVersion"]}")
 
-    implementation("io.ktor:ktor-client-content-negotiation:2.3.10")
-    implementation("io.ktor:ktor-client-core:2.3.10")
-    implementation("io.ktor:ktor-client-cio:2.3.10")
-    implementation("io.ktor:ktor-serialization-kotlinx-json-jvm:2.3.10")
+    implementation("io.ktor:ktor-client-content-negotiation:2.3.12")
+    implementation("io.ktor:ktor-client-core:2.3.12")
+    implementation("io.ktor:ktor-client-cio:2.3.12")
+    implementation("io.ktor:ktor-serialization-kotlinx-json-jvm:2.3.12")
 
     implementation(compose.runtime)
     implementation(compose.foundation)
@@ -57,9 +57,4 @@ compose.desktop {
             }
         }
     }
-}
-
-
-kotlin {
-    jvmToolchain(17)
 }
