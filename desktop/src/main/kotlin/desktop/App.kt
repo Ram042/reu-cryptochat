@@ -207,12 +207,18 @@ fun MessageList(
         modifier = Modifier
             .padding(pad)
             .fillMaxSize(),
+        verticalArrangement = Arrangement
+            .spacedBy(8.dp),
         state = state
     ) {
         items(messages) { message ->
             val align = when (message.direction) {
                 Direction.RECEIVED -> Alignment.TopStart
                 Direction.SENT -> Alignment.TopEnd
+            }
+            val color = when (message.direction) {
+                Direction.RECEIVED -> Color.Blue.copy(alpha = 0.15f)
+                Direction.SENT -> Color.Blue.copy(alpha = 0.3f)
             }
             Box(
                 modifier = Modifier
@@ -221,7 +227,7 @@ fun MessageList(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(10.dp))
-                        .background(Color.Blue.copy(alpha = 0.3f))
+                        .background(color)
                         .padding(5.dp)
                         .fillMaxWidth(0.7f)
                         .align(align)
@@ -231,9 +237,7 @@ fun MessageList(
                     )
                 }
             }
-
         }
-
     }
 }
 
