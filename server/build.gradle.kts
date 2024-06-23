@@ -11,7 +11,6 @@ plugins {
 dependencies {
     implementation(project(":lib"))
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:${rootProject.extra["jsonVersion"]}")
-    implementation("org.bouncycastle:bcprov-jdk15on:${rootProject.extra["bouncycastleVersion"]}")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.5.0")
 
     implementation("org.jetbrains.kotlin:kotlin-reflect")

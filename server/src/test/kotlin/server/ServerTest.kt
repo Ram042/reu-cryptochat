@@ -8,12 +8,20 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.routing.*
 import io.ktor.server.testing.*
 import lib.*
-import lib.KeyExchange.publicKey
-import lib.Signatures.publicKey
+import org.bouncycastle.jce.provider.BouncyCastleProvider
+import java.security.Security
+import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class ApplicationTest {
+
+    @BeforeTest
+    fun init() {
+        Security.setProperty("crypto.policy", "unlimited")
+        Security.addProvider(BouncyCastleProvider())
+    }
+
     @Test
     fun testSessions() = testApplication {
         application {
@@ -26,8 +34,8 @@ class ApplicationTest {
             }
         }
 
-        val privateKey = Signatures.PrivateKey()
-        val target = Signatures.PrivateKey()
+        val privateKey = Crypto.Signature.generatePrivateKey()
+        val target = Crypto.Signature.generatePrivateKey()
 
         val client = createClient {
             install(ContentNegotiation) {
@@ -36,7 +44,7 @@ class ApplicationTest {
         }
 
         val send = SignedMessage.sign(
-            SendSession(KeyExchange.PrivateKey().publicKey, target.publicKey),
+            SendSession(Crypto.KeyAgreement.generatePrivateKey().publicKey(), target.publicKey()),
             privateKey
         )
 
@@ -76,10 +84,10 @@ class ApplicationTest {
 
         val msg = "Hello World!"
 
-        val aPrivateKey = Signatures.PrivateKey()
-        val aSessionKey = KeyExchange.PrivateKey()
-        val bPrivateKey = Signatures.PrivateKey()
-        val bSessionKey = KeyExchange.PrivateKey()
+        val aPrivateKey = Crypto.Signature.generatePrivateKey()
+        val aSessionKey = Crypto.KeyAgreement.generatePrivateKey()
+        val bPrivateKey = Crypto.Signature.generatePrivateKey()
+        val bSessionKey = Crypto.KeyAgreement.generatePrivateKey()
 
         val client = createClient {
             install(ContentNegotiation) {
@@ -89,9 +97,9 @@ class ApplicationTest {
 
         val send = SignedMessage.sign(
             SendMessage(
-                target = bPrivateKey.publicKey,
+                target = bPrivateKey.publicKey(),
                 message = SendMessage.EnvelopePayload(message = msg),
-                key = KeyExchange.generateSharedKey(aSessionKey, bSessionKey.publicKey).toKey()
+                key = Crypto.KeyAgreement.sharedKey(aSessionKey, bSessionKey.publicKey())
             ),
             aPrivateKey
         )

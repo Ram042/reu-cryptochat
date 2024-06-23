@@ -14,8 +14,8 @@ fun Message.toPlainText(): PlainText = PlainText(Json.encodeToString<Message>(th
 
 @Serializable
 class SendSession(
-    val sessionPublicKey: KeyExchange.PublicKey,
-    val target: Signatures.PublicKey
+    val sessionPublicKey: Crypto.KeyAgreement.PublicKey,
+    val target: Crypto.Signature.PublicKey
 ) : Message()
 
 @Serializable
@@ -26,20 +26,20 @@ data class GetSessions(
 
 @Serializable
 data class SendMessage(
-    val target: Signatures.PublicKey,
-    val nonce: Encrypt.Nonce,
-    val encryptedPayload: Encrypt.CypherText
+    val target: Crypto.Signature.PublicKey,
+    val IV: Crypto.Cipher.IV,
+    val encryptedPayload: Crypto.Cipher.CipherText
 ) : Message() {
 
     constructor(
-        target: Signatures.PublicKey,
-        nonce: Encrypt.Nonce = Encrypt.Nonce(),
+        target: Crypto.Signature.PublicKey,
+        iv: Crypto.Cipher.IV = Crypto.Cipher.IV(),
         message: EnvelopePayload,
-        key: Encrypt.Key
+        key: Crypto.Cipher.Key
     ) : this(
         target,
-        nonce,
-        Encrypt.encrypt(padMessage(message), key, nonce)
+        iv,
+        Crypto.Cipher.encrypt(padMessage(message), key, iv)
     )
 
     @Throws(GeneralSecurityException::class)

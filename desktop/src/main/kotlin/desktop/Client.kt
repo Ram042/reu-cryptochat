@@ -14,18 +14,18 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.time.delay
 import kotlinx.serialization.Serializable
 import lib.*
-import lib.Signatures.publicKey
+import lib.Crypto.Signature
 import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
 
 @Serializable
 data class User(
-    val privateKey: Signatures.PrivateKey = Signatures.PrivateKey(),
-    override val publicKey: Signatures.PublicKey = privateKey.publicKey,
+    val privateKey: Signature.PrivateKey = Signature.generatePrivateKey(),
+    override val publicKey: Signature.PublicKey = privateKey.publicKey(),
 ) : HasPublicKey
 
 interface HasPublicKey {
-    val publicKey: Signatures.PublicKey
+    val publicKey: Signature.PublicKey
 }
 
 val HasPublicKey.nameShort: String
@@ -66,7 +66,7 @@ object Users {
 
 @Serializable
 @JvmInline
-value class Contact(override val publicKey: Signatures.PublicKey) : HasPublicKey
+value class Contact(override val publicKey: Signature.PublicKey) : HasPublicKey
 
 const val generateMockMessages = true
 val client = HttpClient {
@@ -171,7 +171,7 @@ class UserService(val user: User) {
             CoroutineScope(Dispatchers.IO).launch {
                 tickerFlow(Duration.ofSeconds(20))
                     .onEach {
-                        addChat(Chat(user, Contact(Signatures.PrivateKey().publicKey)))
+                        addChat(Chat(user, Contact(Signature.generatePrivateKey().publicKey())))
                     }
                     .collect()
             }

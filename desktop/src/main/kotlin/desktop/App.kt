@@ -30,15 +30,20 @@ import androidx.compose.ui.window.application
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import lib.Base16
+import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.jetbrains.skiko.ClipboardManager
 import java.awt.image.BufferedImage
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.security.Security
 import javax.imageio.ImageIO
 import kotlin.experimental.xor
 
 
 fun main() = application {
+    Security.setProperty("crypto.policy", "unlimited")
+    Security.addProvider(BouncyCastleProvider())
+
     val users by Users.users.collectAsState()
 
     Window(

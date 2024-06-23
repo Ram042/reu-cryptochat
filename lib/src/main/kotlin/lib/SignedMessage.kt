@@ -3,20 +3,19 @@ package lib
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import lib.Signatures.publicKey
 import java.util.*
 
 @Serializable
 data class SignedMessage<T>(
     val message: PlainText,
-    val publicKey: Signatures.PublicKey,
-    val signature: Signatures.Signature,
+    val publicKey: Crypto.Signature.PublicKey,
+    val signature: Crypto.Signature.Signature,
 ) where T : Message {
 
     inline fun <reified M> getMessage(): M where M : T = Json.decodeFromString<M>(String(message.bytes))
 
     init {
-        require(Signatures.verify(publicKey, signature, message)) { "bad signature" }
+        require(Crypto.Signature.verify(publicKey, signature, message)) { "bad signature" }
     }
 
     override fun equals(other: Any?): Boolean {
@@ -31,12 +30,12 @@ data class SignedMessage<T>(
     }
 
     companion object {
-        inline fun <reified T : Message> sign(message: T, privateKey: Signatures.PrivateKey): SignedMessage<T> {
+        inline fun <reified T : Message> sign(message: T, privateKey: Crypto.Signature.PrivateKey): SignedMessage<T> {
             val plainText = PlainText(Json.encodeToString<T>(message).encodeToByteArray())
             return SignedMessage<T>(
                 plainText,
-                privateKey.publicKey,
-                Signatures.sign(privateKey, plainText)
+                privateKey.publicKey(),
+                Crypto.Signature.sign(privateKey, plainText)
             )
         }
     }

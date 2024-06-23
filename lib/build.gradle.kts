@@ -5,7 +5,7 @@ plugins {
 }
 
 dependencies {
-    implementation("org.bouncycastle:bcprov-debug-jdk18on:${rootProject.extra["bouncycastleVersion"]}")
+    api("org.bouncycastle:bcprov-debug-jdk18on:${rootProject.extra["bouncycastleVersion"]}")
     implementation("org.jetbrains:annotations:${rootProject.extra["annotationsVersion"]}")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:${rootProject.extra["jsonVersion"]}")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.5.0")

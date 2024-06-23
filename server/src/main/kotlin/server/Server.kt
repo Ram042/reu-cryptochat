@@ -39,7 +39,7 @@ typealias SignedSendSession = SignedMessage<SendSession>
 typealias SignedGetSession = SignedMessage<GetSessions>
 
 fun Routing.sessions() {
-    val sessions = ConcurrentHashMap<Signatures.PublicKey, Set<SignedSendSession>>()
+    val sessions = ConcurrentHashMap<Crypto.Signature.PublicKey, Set<SignedSendSession>>()
     post("/session") {
         try {
             val msg = call.receive<SignedSendSession>()
@@ -69,7 +69,7 @@ private typealias SignedSendMessage = SignedMessage<SendMessage>
 private typealias SignedGetMessage = SignedMessage<GetMessages>
 
 fun Routing.messages() {
-    val messages = ConcurrentHashMap<Signatures.PublicKey, Set<SignedSendMessage>>()
+    val messages = ConcurrentHashMap<Crypto.Signature.PublicKey, Set<SignedSendMessage>>()
     post("/message") {
         try {
             val m = call.receive<SignedSendMessage>()

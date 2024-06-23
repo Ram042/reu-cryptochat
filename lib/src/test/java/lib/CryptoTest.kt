@@ -1,25 +1,34 @@
 package lib
 
+import org.bouncycastle.jcajce.provider.asymmetric.ecgost12.BCECGOST3410_2012PrivateKey
 import org.bouncycastle.jcajce.spec.GOST3410ParameterSpec
 import org.bouncycastle.jcajce.spec.UserKeyingMaterialSpec
+import org.bouncycastle.jce.ECGOST3410NamedCurveTable
 import org.bouncycastle.jce.provider.BouncyCastleProvider
+import org.bouncycastle.jce.spec.ECPublicKeySpec
 import java.math.BigInteger.ONE
+import java.security.KeyFactory
 import java.security.KeyPairGenerator
 import java.security.Security
 import java.security.Signature
+import java.security.spec.PKCS8EncodedKeySpec
 import javax.crypto.Cipher
 import javax.crypto.KeyAgreement
 import javax.crypto.KeyGenerator
 import javax.crypto.spec.IvParameterSpec
+import kotlin.test.BeforeTest
 import kotlin.test.Test
 
 class CryptoTest {
 
-    @Test
-    fun listAlgorithms() {
+    @BeforeTest
+    fun init() {
         Security.setProperty("crypto.policy", "unlimited")
         Security.addProvider(BouncyCastleProvider())
+    }
 
+    @Test
+    fun listAlgorithms() {
         Security.getAlgorithms("Cipher")
             .filter {
                 it.lowercase().contains("gost")
@@ -33,9 +42,6 @@ class CryptoTest {
     @OptIn(ExperimentalStdlibApi::class)
     @Test
     fun testAgreement() {
-        Security.setProperty("crypto.policy", "unlimited")
-        Security.addProvider(BouncyCastleProvider())
-
         val pairA = KeyPairGenerator.getInstance("ECGOST3410-2012").run {
             initialize(GOST3410ParameterSpec("Tc26-Gost-3410-12-256-paramSetA"))
             generateKeyPair()
@@ -43,6 +49,22 @@ class CryptoTest {
         val pairB = KeyPairGenerator.getInstance("ECGOST3410-2012").run {
             initialize(GOST3410ParameterSpec("Tc26-Gost-3410-12-256-paramSetA"))
             generateKeyPair()
+        }
+
+        run {
+            KeyFactory.getInstance("ECGOST3410-2012").run {
+                val encoded = pairA.private.encoded
+                val decoded = PKCS8EncodedKeySpec(encoded)
+                val private = generatePrivate(decoded)
+
+                val ecSpec = ECGOST3410NamedCurveTable.getParameterSpec("Tc26-Gost-3410-12-256-paramSetA")
+
+                val Q = ecSpec.g.multiply((private as BCECGOST3410_2012PrivateKey).d)
+                val pubSpec = ECPublicKeySpec(Q, ecSpec)
+                val public = generatePublic(pubSpec)
+                println(pairA.public.encoded)
+                println(public.encoded)
+            }
         }
 
         val keyA = kotlin.run {
@@ -70,9 +92,6 @@ class CryptoTest {
     @OptIn(ExperimentalStdlibApi::class)
     @Test
     fun testSignature() {
-        Security.setProperty("crypto.policy", "unlimited")
-        Security.addProvider(BouncyCastleProvider())
-
         val pair = KeyPairGenerator.getInstance("ECGOST3410-2012").run {
             initialize(GOST3410ParameterSpec("Tc26-Gost-3410-12-256-paramSetA"))
             generateKeyPair()
@@ -103,9 +122,6 @@ class CryptoTest {
 
     @Test
     fun testEncryption() {
-        Security.setProperty("crypto.policy", "unlimited")
-        Security.addProvider(BouncyCastleProvider())
-
         val msg = "Hello!".toByteArray()
 
         val key = KeyGenerator.getInstance("GOST3412-2015").generateKey()
