@@ -46,7 +46,7 @@ fun main() = application {
             println(Json.encodeToString(users))
             exitApplication()
         },
-        title = "CryptoChat"
+        title = "Защищенный корпоративный мессенджер"
     ) {
         App(
             users = users,
@@ -91,6 +91,7 @@ fun ChatScreen(
     var showDialog by remember { mutableStateOf(false) }
     var chat: Chat? by rememberSaveable { mutableStateOf(null) }
     val messages = chat?.let { Users.chatMessages(it)?.collectAsState() }
+    var message by remember { mutableStateOf("") }
 
     Row(
         modifier = Modifier.fillMaxSize(),
@@ -138,17 +139,24 @@ fun ChatScreen(
                 chat?.let {
                     Row(
                         modifier = Modifier
+                            .padding(5.dp)
                             .fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center,
+                        horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
                         OutlinedTextField(
-                            value = "Новое сообщение",
-                            onValueChange = {},
+                            value = message,
+                            onValueChange = {
+                                message = it
+                            },
+                            label = { Text("Сообщение") },
                             modifier = Modifier
+                                .align(Alignment.CenterVertically)
                                 .weight(1.0f)
                         )
+                        Spacer(Modifier.width(10.dp))
                         Button(
-                            modifier = Modifier,
+                            modifier = Modifier
+                                .align(Alignment.CenterVertically),
                             content = { Icon(Icons.AutoMirrored.Rounded.Send, "New chat") },
                             onClick = {}
                         )
@@ -247,11 +255,38 @@ fun NewChat(
     onDismiss: () -> Unit,
     onNewChat: (Contact) -> Unit
 ) {
+    var address by remember { mutableStateOf("") }
     DialogWindow(
         visible = showDialog,
-        onCloseRequest = onDismiss
+        onCloseRequest = onDismiss,
+        title = "Новый чат",
     ) {
-
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+        ) {
+            Row(
+                modifier = Modifier.align(Alignment.Center)
+            ) {
+                OutlinedTextField(
+                    value = address,
+                    onValueChange = {
+                        address = it
+                    },
+                    label = { Text("Адресат") }
+                )
+                Button(
+                    content = {
+                        Icon(Icons.AutoMirrored.Rounded.Send, "Start chat")
+                    },
+                    onClick = {
+                        onNewChat(TODO())
+                    },
+                    modifier = Modifier
+                        .align(Alignment.CenterVertically)
+                )
+            }
+        }
     }
 }
 
