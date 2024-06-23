@@ -7,7 +7,7 @@ plugins {
     id("idea")
 }
 
-ext["bouncycastleVersion"] = "1.70"
+ext["bouncycastleVersion"] = "1.78.1"
 ext["guavaVersion"] = "33.0.0-jre"
 ext["slf4jVersion"] = "1.7.32"
 ext["urlbuilderVersion"] = "2.0.9"
